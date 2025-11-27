@@ -1,152 +1,193 @@
 #include "glfw_window.hpp"
-
+#include <cc/core/logger.hpp>
+#include <GLFW/glfw3.h>
+#include <stdexcept>
 
 namespace cc::gfx {
 
-static void GLFWErrorCallback(int error, const char* description) {
+constexpr int OPENGL_MAJOR_VERSION = 4;
+constexpr int OPENGL_MINOR_VERSION = 6;
+
+void GLFWWindowImpl::ErrorCallback(int error, const char* description) {
     log::Error("GLFW Error ({}): {}", error, description);
 }
 
-GLFWWindowImpl::~GLFWWindowImpl() {
-    if (window_) {
-        glfwDestroyWindow(window_);
-        log::Info("Window destroyed: {}", title_);
-        window_ = nullptr;
-    }
+void GLFWWindowImpl::FramebufferSizeCallback(GLFWwindow* window, int width, int height) {
+    auto* self = static_cast<GLFWWindowImpl*>(glfwGetWindowUserPointer(window));
+    if (self != nullptr) {
+        self->width_ = static_cast<u32>(width);
+        self->height_ = static_cast<u32>(height);
 
-    glfwWindowCount_--;
-    if (glfwWindowCount_ == 0) {
-        TerminateGLFW();
+        if (self->resizeCallback_) {
+            self->resizeCallback_(self->width_, self->height_);
+        }
     }
 }
 
-void GLFWWindowImpl::InitializeGLFW() {
-    if (glfwInitialized_) {
+void GLFWWindowImpl::WindowCloseCallback(GLFWwindow* window) {
+    auto* self = static_cast<GLFWWindowImpl*>(glfwGetWindowUserPointer(window));
+    if (self != nullptr) {
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
+    }
+}
+
+void GLFWWindowImpl::InitGLFW() {
+    if (s_initialized) {
         return;
     }
 
-    if (!glfwInit()) {
+    glfwSetErrorCallback(ErrorCallback);
+
+    if (glfwInit() == 0) {
         throw std::runtime_error("Failed to initialize GLFW");
     }
 
-    glfwSetErrorCallback(GLFWErrorCallback);
-    glfwInitialized_ = true;
+    s_initialized = true;
     log::Info("GLFW initialized");
 }
 
 void GLFWWindowImpl::TerminateGLFW() {
-    if (!glfwInitialized_) {
+    if (!s_initialized) {
         return;
     }
 
     glfwTerminate();
-    glfwInitialized_ = false;
+    s_initialized = false;
     log::Info("GLFW terminated");
 }
 
+GLFWWindowImpl::~GLFWWindowImpl() {
+    if (handle_ != nullptr) {
+        glfwDestroyWindow(handle_);
+        handle_ = nullptr;
+        log::Info("Window destroyed: '{}'", title_);
+    }
 
-ref<GLFWWindowImpl> GLFWWindowImpl::CreateFromBuilder(const Window::Builder& builder){
-    InitializeGLFW();
+    if (s_windowCount > 0) {
+        --s_windowCount;
+        if (s_windowCount == 0) {
+            TerminateGLFW();
+        }
+    }
+}
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+scope<GLFWWindowImpl> GLFWWindowImpl::Create(const WindowConfig& config) {
+    InitGLFW();
+
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, OPENGL_MAJOR_VERSION);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, OPENGL_MINOR_VERSION);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_RESIZABLE, builder.resizable_ ? GLFW_TRUE : GLFW_FALSE);
-    glfwWindowHint(GLFW_DECORATED, builder.decorated_ ? GLFW_TRUE : GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, config.resizable ?  GLFW_TRUE : GLFW_FALSE);
+    glfwWindowHint(GLFW_DECORATED, config.decorated ? GLFW_TRUE : GLFW_FALSE);
 
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
 #endif
 
-    GLFWmonitor* monitor = builder.fullscreen_ ? glfwGetPrimaryMonitor() : nullptr;
+    GLFWmonitor* monitor = config.fullscreen ? glfwGetPrimaryMonitor() : nullptr;
 
-    GLFWwindow* glfw_window = glfwCreateWindow(
-        static_cast<int>(builder.width_),
-        static_cast<int>(builder.height_),
-        builder.title_.c_str(),
+    GLFWwindow* glfwWindow = glfwCreateWindow(
+        static_cast<int>(config.width),
+        static_cast<int>(config.height),
+        config. title.c_str(),
         monitor,
         nullptr
     );
 
-    if (!glfw_window) {
-        if (glfwWindowCount_ == 0) {
+    if (glfwWindow == nullptr) {
+        if (s_windowCount == 0) {
             TerminateGLFW();
         }
         throw std::runtime_error("Failed to create GLFW window");
     }
 
-    auto window = ref<GLFWWindowImpl>(new GLFWWindowImpl());
-    window->window_ = glfw_window;
-    window->title_ = builder.title_;
-    window->width_ = builder.width_;
-    window->height_ = builder.height_;
-    window->vsync_ = builder.vsync_;
-    window->fullscreen_ = builder.fullscreen_;
-    window->resizable_ = builder.resizable_;
-    window->should_close_ = false;
+    auto window = scope<GLFWWindowImpl>(new GLFWWindowImpl());
+    window->handle_ = glfwWindow;
+    window->title_ = config.title;
+    window->width_ = config.width;
+    window->height_ = config.height;
+    window->resizable_ = config. resizable;
+    window->vsync_ = config.vsync;
+    window->fullscreen_ = config.fullscreen;
+    window->decorated_ = config.decorated;
 
-    glfwWindowCount_++;
+    ++s_windowCount;
 
-    glfwSetWindowUserPointer(glfw_window, window.get());
+    glfwSetWindowUserPointer(glfwWindow, window. get());
+    glfwSetFramebufferSizeCallback(glfwWindow, FramebufferSizeCallback);
+    glfwSetWindowCloseCallback(glfwWindow, WindowCloseCallback);
 
-    glfwSetFramebufferSizeCallback(glfw_window, [](GLFWwindow* w, int width, int height) {
-        auto* win = static_cast<GLFWWindowImpl*>(glfwGetWindowUserPointer(w));
-        if (win) {
-            win->width_ = static_cast<u32>(width);
-            win->height_ = static_cast<u32>(height);
-        }
-    });
+    glfwMakeContextCurrent(glfwWindow);
+    glfwSwapInterval(config.vsync ? 1 : 0);
 
-    glfwSetWindowCloseCallback(glfw_window, [](GLFWwindow* w) {
-        auto* win = static_cast<GLFWWindowImpl*>(glfwGetWindowUserPointer(w));
-        if (win) {
-            win->should_close_ = true;
-        }
-    });
-
-    log::Info("Window created: '{}' ({}x{})", builder.title_, builder.width_, builder.height_);
+    log::Info("Window created: '{}' ({}x{})", config.title, config.width, config.height);
 
     return window;
 }
 
-
-bool GLFWWindowImpl::ShouldClose() const  noexcept  {
-    return should_close_ || glfwWindowShouldClose(window_);
+bool GLFWWindowImpl::ShouldClose() const {
+    return glfwWindowShouldClose(handle_) == GLFW_TRUE;
 }
-void GLFWWindowImpl::PollEvents() noexcept {
+
+void GLFWWindowImpl::PollEvents() {
     glfwPollEvents();
 }
-void GLFWWindowImpl::Close() noexcept {
-    should_close_ = true;
-    glfwSetWindowShouldClose(window_, GLFW_TRUE);
+
+void GLFWWindowImpl::SwapBuffers() {
+    glfwSwapBuffers(handle_);
 }
 
-u32 GLFWWindowImpl::GetWidth() const noexcept {return width_;}
-u32 GLFWWindowImpl::GetHeight() const noexcept {return height_;}
-std::string_view GLFWWindowImpl::GetTitle() const noexcept {return title_;}
+void GLFWWindowImpl::Close() {
+    glfwSetWindowShouldClose(handle_, GLFW_TRUE);
+}
 
-bool GLFWWindowImpl::IsVSync() const noexcept {return vsync_;}
-bool GLFWWindowImpl::IsFullscreen() const noexcept {return fullscreen_;}
-bool GLFWWindowImpl::IsResizable() const noexcept { return resizable_;}
+u32 GLFWWindowImpl::GetWidth() const {
+    return width_;
+}
 
-void GLFWWindowImpl::SetVSync(bool enabled) noexcept {
+u32 GLFWWindowImpl::GetHeight() const {
+    return height_;
+}
+
+std::string_view GLFWWindowImpl::GetTitle() const {
+    return title_;
+}
+
+bool GLFWWindowImpl::IsVSync() const {
+    return vsync_;
+}
+
+bool GLFWWindowImpl::IsFullscreen() const {
+    return fullscreen_;
+}
+
+bool GLFWWindowImpl::IsResizable() const {
+    return resizable_;
+}
+
+void GLFWWindowImpl::SetVSync(bool enabled) {
     vsync_ = enabled;
-    if (glfwGetCurrentContext() == window_) {
-        glfwSwapInterval(enabled ? 1 : 0);
-    }
+    glfwMakeContextCurrent(handle_);
+    glfwSwapInterval(enabled ? 1 : 0);
 }
+
 void GLFWWindowImpl::SetTitle(std::string_view title) {
     title_ = title;
-    glfwSetWindowTitle(window_, title_.c_str());
+    glfwSetWindowTitle(handle_, title_.c_str());
 }
+
 void GLFWWindowImpl::SetSize(u32 width, u32 height) {
     width_ = width;
     height_ = height;
-    glfwSetWindowSize(window_, static_cast<int>(width), static_cast<int>(height));
+    glfwSetWindowSize(handle_, static_cast<int>(width), static_cast<int>(height));
 }
 
-void* GLFWWindowImpl::GetNativeHandle() const noexcept {
-    return static_cast<void*>(window_);}
+void* GLFWWindowImpl::GetNativeHandle() const {
+    return static_cast<void*>(handle_);
+}
 
+void GLFWWindowImpl::SetResizeCallback(WindowResizeCallback callback) {
+    resizeCallback_ = std::move(callback);
+}
 
 } // namespace cc::gfx

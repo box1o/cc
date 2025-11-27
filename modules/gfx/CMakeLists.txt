@@ -49,4 +49,7 @@ target_include_directories(cc_gfx
 target_compile_definitions(cc_gfx
     PRIVATE
         CC_GFX_VERSION="${PROJECT_VERSION}"
+        CC_GFX_BACKEND_GL=1
+        CC_GFX_BACKEND_VK=0
+        CC_GFX_BACKEND_MTL=0
 )

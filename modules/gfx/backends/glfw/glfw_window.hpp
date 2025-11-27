@@ -1,59 +1,61 @@
 #pragma once
-#include "window/window.hpp"
-#include "types.hpp"
-#include "GLFW/glfw3.h"
+#include <cc/gfx/window/window.hpp>
+#include <string>
 
+struct GLFWwindow;
 
 namespace cc::gfx {
 
-class GLFWWindowImpl final : public Window{
+class GLFWWindowImpl final : public Window {
 public:
     ~GLFWWindowImpl() override;
-    static ref<GLFWWindowImpl> CreateFromBuilder(const Window::Builder& builder);
 
+    static scope<GLFWWindowImpl> Create(const WindowConfig& config);
 
-    // NOTE: interface implementation
-    [[nodiscard]]  bool ShouldClose() const  noexcept  override;
-    void PollEvents() noexcept override;
-    void Close() noexcept override;
+    bool ShouldClose() const override;
+    void PollEvents() override;
+    void SwapBuffers() override;
+    void Close() override;
 
-    [[nodiscard]]  u32 GetWidth() const noexcept override;
-    [[nodiscard]]  u32 GetHeight() const noexcept override;
-    [[nodiscard]]  std::string_view GetTitle() const noexcept override;
+    u32 GetWidth() const override;
+    u32 GetHeight() const override;
+    std::string_view GetTitle() const override;
 
-    [[nodiscard]]  bool IsVSync() const noexcept override;
-    [[nodiscard]]  bool IsFullscreen() const noexcept override;
-    [[nodiscard]]  bool IsResizable() const noexcept override;
+    bool IsVSync() const override;
+    bool IsFullscreen() const override;
+    bool IsResizable() const override;
 
-    void SetVSync(bool enabled) noexcept override;
+    void SetVSync(bool enabled) override;
     void SetTitle(std::string_view title) override;
     void SetSize(u32 width, u32 height) override;
 
-    void* GetNativeHandle() const noexcept override;
+    void* GetNativeHandle() const override;
+    WindowBackend GetBackend() const override { return WindowBackend::GLFW; }
+
+    void SetResizeCallback(WindowResizeCallback callback) override;
 
 private:
     GLFWWindowImpl() = default;
 
-    static void InitializeGLFW();
+    static void InitGLFW();
     static void TerminateGLFW();
+    static void ErrorCallback(int error, const char* description);
+    static void FramebufferSizeCallback(GLFWwindow* window, int width, int height);
+    static void WindowCloseCallback(GLFWwindow* window);
 
-    GLFWwindow* window_{nullptr};
-    std::string title_{"studio"};
-    u32 width_{1920};
-    u32 height_{1080};
+    GLFWwindow* handle_{nullptr};
+    std::string title_;
+    u32 width_{0};
+    u32 height_{0};
     bool resizable_{true};
     bool vsync_{true};
     bool fullscreen_{false};
     bool decorated_{true};
-    bool should_close_{false};
+    
+    WindowResizeCallback resizeCallback_;
 
-    static inline u32 glfwWindowCount_{0};
-    static inline bool glfwInitialized_{false};
-
-
-    friend class Window::Builder;
-
+    static inline u32 s_windowCount{0};
+    static inline bool s_initialized{false};
 };
-
 
 } // namespace cc::gfx
