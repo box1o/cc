@@ -22,10 +22,24 @@ public:
     scope<TextureCube> CreateTextureCube(u32 size, TextureFormat format) override;
     scope<Sampler> CreateSampler(const SamplerConfig& config) override;
     scope<Framebuffer> CreateDefaultFramebuffer(u32 width, u32 height) override;
+    scope<DescriptorSetLayout> CreateDescriptorSetLayout(const std::vector<DescriptorBinding>& bindings) override;
+    scope<DescriptorSet> CreateDescriptorSet(
+        ref<DescriptorSetLayout> layout,
+        const std::vector<BufferBinding>& bufferBindings,
+        const std::vector<TextureBinding>& textureBindings
+    ) override;
+    scope<Pipeline> CreatePipeline(
+        Shader* shader,
+        VertexLayout* vertexLayout,
+        const std::vector<DescriptorSetLayout*>& descriptorLayouts,
+        PrimitiveTopology topology,
+        const RasterizerState& rasterizer,
+        const DepthStencilState& depthStencil,
+        const BlendState& blend
+    ) override;
 
     static scope<Device> CreateFromBuilder(const Device::Builder& builder);
 
-    //NOTE: Public for OpenGL debug callback wrapper
     static void DebugCallbackImpl(
         unsigned int source,
         unsigned int type,

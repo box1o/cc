@@ -13,4 +13,8 @@
 #include "shader/compiler.hpp"
 #include "shader/reflection.hpp"
 #include "shader/shader.hpp"
+#include "pipeline/vertex_layout.hpp"
+#include "pipeline/pipeline.hpp"
+#include "descriptor/descriptor_set_layout.hpp"
+#include "descriptor/descriptor_set.hpp"
 // IWYU pragma: end_exports

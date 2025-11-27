@@ -2,8 +2,12 @@
 #include <cc/core/core.hpp>
 #include <cc/gfx/types.hpp>
 #include <cc/gfx/fwd.hpp>
+#include <vector>
 
 namespace cc::gfx {
+
+struct BufferBinding;
+struct TextureBinding;
 
 class Device {
 public:
@@ -19,7 +23,7 @@ public:
         Window* window_{nullptr};
 
         friend class Device;
-        friend class OpenGLDevice;  
+        friend class OpenGLDevice;
     };
 
     virtual ~Device() = default;
@@ -37,6 +41,21 @@ public:
     virtual scope<TextureCube> CreateTextureCube(u32 size, TextureFormat format = TextureFormat::RGBA8) = 0;
     virtual scope<Sampler> CreateSampler(const SamplerConfig& config = {}) = 0;
     virtual scope<Framebuffer> CreateDefaultFramebuffer(u32 width, u32 height) = 0;
+    virtual scope<DescriptorSetLayout> CreateDescriptorSetLayout(const std::vector<DescriptorBinding>& bindings) = 0;
+    virtual scope<DescriptorSet> CreateDescriptorSet(
+        ref<DescriptorSetLayout> layout,
+        const std::vector<BufferBinding>& bufferBindings,
+        const std::vector<TextureBinding>& textureBindings
+    ) = 0;
+    virtual scope<Pipeline> CreatePipeline(
+        Shader* shader,
+        VertexLayout* vertexLayout,
+        const std::vector<DescriptorSetLayout*>& descriptorLayouts,
+        PrimitiveTopology topology,
+        const RasterizerState& rasterizer,
+        const DepthStencilState& depthStencil,
+        const BlendState& blend
+    ) = 0;
 
 protected:
     Device() = default;

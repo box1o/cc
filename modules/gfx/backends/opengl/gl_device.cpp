@@ -1,4 +1,7 @@
 #include "gl_device.hpp"
+#include "backends/opengl/gl_descriptor_set.hpp"
+#include "backends/opengl/gl_descriptor_set_layout.hpp"
+#include "backends/opengl/gl_pipeline.hpp"
 #include "gl_buffer.hpp"
 #include "gl_texture.hpp"
 #include "gl_sampler.hpp"
@@ -214,5 +217,39 @@ scope<Device> OpenGLDevice::CreateFromBuilder(const Device::Builder& builder) {
 scope<Device> CreateOpenGLDevice(const Device::Builder& builder) {
     return OpenGLDevice::CreateFromBuilder(builder);
 }
+
+scope<DescriptorSetLayout> OpenGLDevice::CreateDescriptorSetLayout(const std::vector<DescriptorBinding>& bindings) {
+    return CreateOpenGLDescriptorSetLayout(this, bindings);
+}
+
+scope<DescriptorSet> OpenGLDevice::CreateDescriptorSet(
+    ref<DescriptorSetLayout> layout,
+    const std::vector<BufferBinding>& bufferBindings,
+    const std::vector<TextureBinding>& textureBindings
+) {
+    return CreateOpenGLDescriptorSet(this, layout, bufferBindings, textureBindings);
+}
+
+scope<Pipeline> OpenGLDevice::CreatePipeline(
+    Shader* shader,
+    VertexLayout* vertexLayout,
+    const std::vector<DescriptorSetLayout*>& descriptorLayouts,
+    PrimitiveTopology topology,
+    const RasterizerState& rasterizer,
+    const DepthStencilState& depthStencil,
+    const BlendState& blend
+) {
+    return CreateOpenGLPipeline(
+        this,
+        shader,
+        vertexLayout,
+        descriptorLayouts,
+        topology,
+        rasterizer,
+        depthStencil,
+        blend
+    );
+}
+
 
 } // namespace cc::gfx

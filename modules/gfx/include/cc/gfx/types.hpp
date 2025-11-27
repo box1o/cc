@@ -3,6 +3,10 @@
 
 namespace cc::gfx {
 
+class Shader;
+class VertexLayout;
+class DescriptorSetLayout;
+
 //NOTE: Backend Types
 enum class Backend : u8 {
     OpenGL = 0,
@@ -144,18 +148,28 @@ enum class BlendOp : u8 {
     Max             = 4
 };
 
+enum class PolygonMode : u8 {
+    Fill  = 0,
+    Line  = 1,
+    Point = 2
+};
+
 //NOTE: Shader Types
 enum class ShaderStage : u8 {
-    Vertex                 = 0,
-    Fragment               = 1,
-    Geometry               = 2,
-    Compute                = 3,
-    TessellationControl    = 4,
-    TessellationEvaluation = 5
+    Vertex                 = 1 << 0,
+    Fragment               = 1 << 1,
+    Geometry               = 1 << 2,
+    Compute                = 1 << 3,
+    TessellationControl    = 1 << 4,
+    TessellationEvaluation = 1 << 5
 };
 
 constexpr ShaderStage operator|(ShaderStage a, ShaderStage b) {
     return static_cast<ShaderStage>(static_cast<u8>(a) | static_cast<u8>(b));
+}
+
+constexpr bool operator&(ShaderStage a, ShaderStage b) {
+    return (static_cast<u8>(a) & static_cast<u8>(b)) != 0;
 }
 
 //NOTE: Vertex Types
@@ -317,10 +331,58 @@ struct ClearValue {
         struct { f32 r, g, b, a; } color;
         struct { f32 depth; u32 stencil; } depthStencil;
     };
-    
+
     ClearValue() : color{0.0f, 0.0f, 0.0f, 1.0f} {}
     ClearValue(f32 r, f32 g, f32 b, f32 a = 1.0f) : color{r, g, b, a} {}
     ClearValue(f32 depth, u32 stencil = 0) : depthStencil{depth, stencil} {}
+};
+
+//NOTE: Vertex Layout Types
+struct VertexBinding {
+    u32 binding{0};
+    u32 stride{0};
+    VertexInputRate inputRate{VertexInputRate::PerVertex};
+};
+
+struct VertexAttribute {
+    u32 location{0};
+    u32 binding{0};
+    VertexFormat format{VertexFormat::Float3};
+    u32 offset{0};
+};
+
+//NOTE: Descriptor Binding
+struct DescriptorBinding {
+    u32 binding{0};
+    DescriptorType type{DescriptorType::UniformBuffer};
+    ShaderStage stages{ShaderStage::Vertex};
+    u32 count{1};
+};
+
+//NOTE: Pipeline State Types
+struct RasterizerState {
+    CullMode cullMode{CullMode::Back};
+    FrontFace frontFace{FrontFace::CounterClockwise};
+    PolygonMode polygonMode{PolygonMode::Fill};
+    f32 lineWidth{1.0f};
+    bool depthClampEnable{false};
+};
+
+struct DepthStencilState {
+    bool depthTestEnable{true};
+    bool depthWriteEnable{true};
+    CompareOp depthCompareOp{CompareOp::Less};
+    bool stencilTestEnable{false};
+};
+
+struct BlendState {
+    bool enabled{false};
+    BlendFactor srcColorFactor{BlendFactor::SrcAlpha};
+    BlendFactor dstColorFactor{BlendFactor::OneMinusSrcAlpha};
+    BlendOp colorBlendOp{BlendOp::Add};
+    BlendFactor srcAlphaFactor{BlendFactor::One};
+    BlendFactor dstAlphaFactor{BlendFactor::Zero};
+    BlendOp alphaBlendOp{BlendOp::Add};
 };
 
 } // namespace cc::gfx

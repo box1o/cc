@@ -1,74 +1,92 @@
 #include <cc/core/core.hpp>
+#include <cc/math/math.hpp>
 #include <cc/gfx/gfx.hpp>
 #include <glad/glad.h>
-#include <GLFW/glfw3.h>
 
 struct Vertex {
-    float position[3];
-    float color[3];
+    cc::vec3f position;
+    cc::vec3f color;
+};
+
+struct Uniforms {
+    cc::mat4f model;
+    cc::mat4f view;
+    cc::mat4f projection;
 };
 
 int main() {
     cc::log::Init("studio");
 
-    //NOTE: Window Creation
+    // NOTE: Window Creation
     auto window = cc::gfx::Window::Create()
-        .SetTitle("Studio Engine - Graphics Test")
+        .SetTitle("Studio Engine - Rotating Cube")
         .SetSize(1280, 720)
         .SetVSync(true)
         .Build();
 
-    cc::log::Info("Window created: {}x{}", window->GetWidth(), window->GetHeight());
-
-    //NOTE: Device Creation
-    auto device = cc::gfx::Device::Create(window. get(), cc::gfx::Backend::OpenGL)
+    // NOTE: Device Creation
+    auto device = cc::gfx::Device::Create(window.get(), cc::gfx::Backend::OpenGL)
         .EnableValidation(true)
         .Build();
 
-    cc::log::Info("Device created successfully");
-
-    //NOTE: Print Device Capabilities
-    const auto& caps = device->GetCapabilities();
-    const auto& info = device->GetInfo();
-    
-    cc::log::Info("=== Device Information ===");
-    cc::log::Info("  Vendor: {}", info.vendorName);
-    cc::log::Info("  Renderer: {}", info.rendererName);
-    cc::log::Info("  API Version: {}", info.apiVersion);
-    cc::log::Info("  GLSL Version: {}", info. shadingLanguageVersion);
-    cc::log::Info("");
-    cc::log::Info("=== Device Capabilities ===");
-    cc::log::Info("  Max Texture Size: {}", caps.maxTextureSize);
-    cc::log::Info("  Max Texture Units: {}", caps.maxTextureUnits);
-    cc::log::Info("  Max Vertex Attributes: {}", caps.maxVertexAttributes);
-    cc::log::Info("  Max Color Attachments: {}", caps. maxColorAttachments);
-    cc::log::Info("  Max Anisotropy: {:. 1f}", caps.maxAnisotropy);
-    cc::log::Info("  Compute Shaders: {}", caps. supportsCompute ?  "Yes" : "No");
-    cc::log::Info("  Geometry Shaders: {}", caps.supportsGeometryShader ? "Yes" : "No");
-    cc::log::Info("");
-
-    //NOTE: Swapchain Creation
+    // NOTE: Swapchain
     auto swapchain = cc::gfx::Swapchain::Create(window.get(), device.get());
-    cc::log::Info("Swapchain created");
 
-    //NOTE: Shader Creation
+    // NOTE: Shader
     auto shader = cc::gfx::Shader::Create(device.get())
-        .AddStage(cc::gfx::ShaderStage::Vertex, "resources/shaders/default.vert")
-        .AddStage(cc::gfx::ShaderStage::Fragment, "resources/shaders/default.frag")
+        .AddStage(cc::gfx::ShaderStage::Vertex, "resources/shaders/cube.vert")
+        .AddStage(cc::gfx::ShaderStage::Fragment, "resources/shaders/cube.frag")
         .Build();
 
-    cc::log::Info("Shader program created (handle={})", shader->GetHandle());
-
-    //NOTE: Triangle Vertex Data
+    // NOTE: Cube vertex data
     Vertex vertices[] = {
-        {{  0.0f,  0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f }}, // Top - Red
-        {{ -0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f }}, // Bottom Left - Green
-        {{  0.5f, -0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }}  // Bottom Right - Blue
+        // Front (red)
+        {{-0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{ 0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{ 0.5f,  0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{-0.5f,  0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}},
+
+        // Back (green)
+        {{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+        {{-0.5f,  0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+        {{ 0.5f,  0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+        {{ 0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+
+        // Top (blue)
+        {{-0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}},
+        {{-0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}},
+        {{ 0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}},
+        {{ 0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}},
+
+        // Bottom (yellow)
+        {{-0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 0.0f}},
+        {{ 0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 0.0f}},
+        {{ 0.5f, -0.5f,  0.5f}, {1.0f, 1.0f, 0.0f}},
+        {{-0.5f, -0.5f,  0.5f}, {1.0f, 1.0f, 0.0f}},
+
+        // Right (magenta)
+        {{ 0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 1.0f}},
+        {{ 0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 1.0f}},
+        {{ 0.5f,  0.5f,  0.5f}, {1.0f, 0.0f, 1.0f}},
+        {{ 0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 1.0f}},
+
+        // Left (cyan)
+        {{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 1.0f}},
+        {{-0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 1.0f}},
+        {{-0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 1.0f}},
+        {{-0.5f,  0.5f, -0.5f}, {0.0f, 1.0f, 1.0f}},
     };
 
-    cc::u32 indices[] = { 0, 1, 2 };
+    cc::u32 indices[] = {
+        0,1,2, 2,3,0,
+        4,5,6, 6,7,4,
+        8,9,10, 10,11,8,
+        12,13,14, 14,15,12,
+        16,17,18, 18,19,16,
+        20,21,22, 22,23,20
+    };
 
-    //NOTE: Buffer Creation
+    // NOTE: Buffers
     auto vertexBuffer = cc::gfx::Buffer::Create(
         device.get(),
         cc::gfx::BufferType::Vertex,
@@ -85,61 +103,78 @@ int main() {
         indices
     );
 
-    cc::log::Info("Buffers created (vertex={}, index={})", 
-                  vertexBuffer->GetHandle(), 
-                  indexBuffer->GetHandle());
+    auto uniformBuffer = cc::gfx::Buffer::Create(
+        device.get(),
+        cc::gfx::BufferType::Uniform,
+        sizeof(Uniforms),
+        cc::gfx::BufferUsage::Dynamic,
+        nullptr
+    );
 
-    //NOTE: Setup Vertex Array Object (OpenGL specific)
-    cc::u32 vao = 0;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
+    // NOTE: Vertex Layout
+    auto vertexLayout = cc::gfx::VertexLayout::Create()
+        .Binding(0, sizeof(Vertex), cc::gfx::VertexInputRate::PerVertex)
+        .Attribute(0, 0, cc::gfx::VertexFormat::Float3, offsetof(Vertex, position))
+        .Attribute(1, 0, cc::gfx::VertexFormat::Float3, offsetof(Vertex, color))
+        .Build();
 
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer->GetHandle());
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer->GetHandle());
+    // NOTE: Pipeline
+    auto pipeline = cc::gfx::Pipeline::Create(device.get())
+        .SetShader(shader.get())
+        .SetVertexLayout(vertexLayout.get())
+        .SetPrimitiveTopology(cc::gfx::PrimitiveTopology::TriangleList)
+        .SetCullMode(cc::gfx::CullMode::Back)
+        .SetFrontFace(cc::gfx::FrontFace::CounterClockwise)
+        .SetDepthTest(true)
+        .SetDepthWrite(true)
+        .SetDepthCompare(cc::gfx::CompareOp::Less)
+        .SetBlendEnabled(false)
+        .Build();
 
-    //NOTE: Position attribute (location 0)
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
+    pipeline->BindVertexBuffer(0, vertexBuffer.get());
+    pipeline->BindIndexBuffer(indexBuffer.get(), cc::gfx::IndexType::U32);
 
-    //NOTE: Color attribute (location 1)
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
+    // Uniform block binding
+    shader->SetUniformBlock("Uniforms", 0);
+    glBindBufferBase(GL_UNIFORM_BUFFER, 0, uniformBuffer->GetHandle());
 
-    glBindVertexArray(0);
+    cc::log::Info("Initialization complete, entering main loop");
 
-    cc::log::Info("Vertex array object created (handle={})", vao);
-    cc::log::Info("");
-    cc::log::Info("=== Entering Main Loop ===");
-
-    //NOTE: Main Rendering Loop
+    Uniforms uniforms{};
     cc::f32 time = 0.0f;
+
+    // Main Loop
     while (!window->ShouldClose()) {
         window->PollEvents();
 
-        //NOTE: Animated background color
         time += 0.016f;
-        cc::f32 r = 0.1f + 0.05f * std::sin(time);
-        cc::f32 g = 0.1f + 0.05f * std::cos(time * 0.7f);
-        cc::f32 b = 0.15f + 0.05f * std::sin(time * 0.5f);
 
-        swapchain->Clear(cc::gfx::ClearValue(r, g, b, 1.0f));
+        float aspect = (float)window->GetWidth() / (float)window->GetHeight();
 
-        //NOTE: Render Triangle
-        shader->Bind();
-        glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, nullptr);
-        glBindVertexArray(0);
-        shader->Unbind();
+        uniforms.model = cc::rotate_y(time) * cc::rotate_x(time * 0.7f);
+        uniforms.view = cc::look_at(
+            cc::vec3f(0.0f, 0.0f, 5.0f),
+            cc::vec3f(0.0f, 0.0f, 0.0f),
+            cc::vec3f(0.0f, 1.0f, 0.0f)
+        );
+        uniforms.projection = cc::perspective(cc::rad(45.0f), aspect, 0.1f, 100.0f);
+
+        uniformBuffer->Update(&uniforms, sizeof(Uniforms));
+
+        // Rendering
+        glViewport(0, 0, window->GetWidth(), window->GetHeight());
+        glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_DEPTH_TEST);
+
+        pipeline->Bind();
+        pipeline->DrawIndexed(36);
+        pipeline->Unbind();
 
         swapchain->Present();
     }
 
-    //NOTE: Cleanup
-    glDeleteVertexArrays(1, &vao);
-
     device->WaitIdle();
-
-    cc::log::Info("");
     cc::log::Info("Shutting down...");
     return 0;
 }
