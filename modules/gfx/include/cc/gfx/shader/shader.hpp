@@ -12,14 +12,20 @@ namespace cc::gfx {
 
 class Shader {
 public:
+    struct StageSource {
+        ShaderStage stage{};
+        std::string name{};
+        std::string source{};
+    };
+
     class Builder {
     public:
         Builder& AddStage(ShaderStage stage, const std::filesystem::path& filepath);
         Builder& AddStageFromSource(ShaderStage stage, std::string_view source, std::string_view name = "shader");
         Builder& EnableReflection(bool enable = true);
+        Builder& EnableCache(bool enable = true);
         [[nodiscard]] scope<Shader> Build();
 
-    private:
         struct StageInfo {
             ShaderStage stage{};
             std::filesystem::path filepath{};
@@ -28,9 +34,11 @@ public:
             bool isFile{true};
         };
 
+    private:
         Device* device_{nullptr};
         std::vector<StageInfo> stages_;
         bool enableReflection_{false};
+        bool enableCache_{false};
 
         friend class Shader;
     };
@@ -48,11 +56,17 @@ public:
     void SetUniformBlock(const char* name, u32 binding) const;
     void SetSampler(const char* name, u32 binding) const;
 
+    [[nodiscard]] const std::vector<StageSource>& GetStages() const noexcept { return stages_; }
+    [[nodiscard]] bool IsReflectionEnabled() const noexcept { return !reflections_.empty(); }
+
 private:
-    Shader(scope<ShaderImpl> impl, std::unordered_map<ShaderStage, ShaderReflection> reflections) noexcept;
+    Shader(scope<ShaderImpl> impl,
+           std::unordered_map<ShaderStage, ShaderReflection> reflections,
+           std::vector<StageSource> stages) noexcept;
 
     scope<ShaderImpl> impl_;
     std::unordered_map<ShaderStage, ShaderReflection> reflections_;
+    std::vector<StageSource> stages_;
 
     friend scope<Shader> CreateOpenGLShader(
         Device*,

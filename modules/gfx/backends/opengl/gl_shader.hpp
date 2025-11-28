@@ -22,7 +22,7 @@ public:
     void SetUniformBlockBinding(const char* name, u32 binding) const override;
     void SetSamplerBinding(const char* name, u32 binding) const override;
 
-    static std::string LoadShaderSource(const std::filesystem::path& filepath);
+    [[nodiscard]] static std::string LoadShaderSource(const std::filesystem::path& filepath);
 
 private:
     [[nodiscard]] static unsigned int GetGLShaderStage(ShaderStage stage) noexcept;

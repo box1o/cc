@@ -192,7 +192,7 @@ void OpenGLShaderImpl::SetSamplerBinding(const char* name, u32 binding) const {
     }
 
     auto impl = scope<ShaderImpl>(new OpenGLShaderImpl(stageSources));
-    return scope<Shader>(new Shader(std::move(impl), {}));
+    return scope<Shader>(new Shader(std::move(impl), {}, {}));
 }
 
 [[nodiscard]] scope<Shader> CreateOpenGLShaderFromSource(
@@ -200,7 +200,7 @@ void OpenGLShaderImpl::SetSamplerBinding(const char* name, u32 binding) const {
     const std::vector<std::pair<ShaderStage, std::string>>& stages
 ) {
     auto impl = scope<ShaderImpl>(new OpenGLShaderImpl(stages));
-    return scope<Shader>(new Shader(std::move(impl), {}));
+    return scope<Shader>(new Shader(std::move(impl), {}, {}));
 }
 
 } // namespace cc::gfx
