@@ -18,7 +18,7 @@ layout(std140, binding = 0) uniform PBRUniforms {
     vec3 albedo;
     float roughness;
     float ao;
-    float isGlass;
+    float isGlass;   // ignored here, sphere is always glass
     vec2 padding3;
 };
 
@@ -31,7 +31,6 @@ void main() {
     vec4 worldPos = model * vec4(aPosition, 1.0);
     vWorldPos = worldPos.xyz;
 
-    //NOTE: Normal matrix
     vWorldNormal = mat3(transpose(inverse(model))) * aNormal;
 
     vColor = aColor;

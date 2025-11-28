@@ -117,7 +117,7 @@ unsigned int OpenGLTexture2DImpl::GetGLType() const {
 }
 
 OpenGLTexture2DImpl::OpenGLTexture2DImpl(u32 width, u32 height, TextureFormat format, const void* data)
-    : width_(width), height_(height), format_(format) {
+: width_(width), height_(height), format_(format) {
 
     glCreateTextures(GL_TEXTURE_2D, 1, &handle_);
     if (handle_ == 0) {
@@ -125,12 +125,25 @@ OpenGLTexture2DImpl::OpenGLTexture2DImpl(u32 width, u32 height, TextureFormat fo
         return;
     }
 
-    glTextureStorage2D(handle_, 1, GetGLInternalFormat(), 
-                       static_cast<int>(width_), static_cast<int>(height_));
+    glTextureStorage2D(
+        handle_,
+        1,
+        GetGLInternalFormat(),
+        static_cast<int>(width_),
+        static_cast<int>(height_)
+    );
 
     if (data != nullptr) {
-        glTextureSubImage2D(handle_, 0, 0, 0, static_cast<int>(width_), static_cast<int>(height_),
-                           GetGLFormat(), GetGLType(), data);
+        glTextureSubImage2D(
+            handle_,
+            0,
+            0, 0,
+            static_cast<int>(width_),
+            static_cast<int>(height_),
+            GetGLFormat(),
+            GetGLType(),
+            data
+        );
     }
 
     glTextureParameteri(handle_, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -201,8 +214,11 @@ unsigned int OpenGLTextureCubeImpl::GetGLType() const {
     }
 }
 
-OpenGLTextureCubeImpl::OpenGLTextureCubeImpl(u32 size, TextureFormat format, const std::array<const void*, CUBEMAP_FACE_COUNT>& faceData)
-    : size_(size), format_(format) {
+OpenGLTextureCubeImpl::OpenGLTextureCubeImpl(
+    u32 size,
+    TextureFormat format,
+    const std::array<const void*, CUBEMAP_FACE_COUNT>& faceData
+) : size_(size), format_(format) {
 
     glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &handle_);
     if (handle_ == 0) {
@@ -210,14 +226,28 @@ OpenGLTextureCubeImpl::OpenGLTextureCubeImpl(u32 size, TextureFormat format, con
         return;
     }
 
-    glTextureStorage2D(handle_, 1, GetGLInternalFormat(),
-                       static_cast<int>(size_), static_cast<int>(size_));
+    glTextureStorage2D(
+        handle_,
+        1,
+        GetGLInternalFormat(),
+        static_cast<int>(size_),
+        static_cast<int>(size_)
+    );
 
     for (u32 i = 0; i < CUBEMAP_FACE_COUNT; ++i) {
         if (faceData[i] != nullptr) {
-            glTextureSubImage3D(handle_, 0, 0, 0, static_cast<int>(i),
-                               static_cast<int>(size_), static_cast<int>(size_), 1,
-                               GetGLFormat(), GetGLType(), faceData[i]);
+            glTextureSubImage3D(
+                handle_,
+                0,
+                0, 0,
+                static_cast<int>(i),
+                static_cast<int>(size_),
+                static_cast<int>(size_),
+                1,
+                GetGLFormat(),
+                GetGLType(),
+                faceData[i]
+            );
         }
     }
 
@@ -247,36 +277,55 @@ void OpenGLTextureCubeImpl::Unbind() const {
 }
 
 //NOTE: Factory Functions
-scope<Texture2D> CreateOpenGLTexture2D(Device* /*device*/, u32 width, u32 height, TextureFormat format, const void* data) {
+scope<Texture2D> CreateOpenGLTexture2D(
+    Device* /*device*/,
+    u32 width,
+    u32 height,
+    TextureFormat format,
+    const void* data
+) {
     auto impl = scope<TextureImpl>(new OpenGLTexture2DImpl(width, height, format, data));
     return scope<Texture2D>(new Texture2D(width, height, format, std::move(impl)));
 }
 
 scope<Texture2D> CreateOpenGLTexture2DFromFile(Device* device, const std::filesystem::path& filepath) {
     stbi_set_flip_vertically_on_load(1);
-    
+
     int width = 0, height = 0, channels = 0;
-    unsigned char* pixels = stbi_load(filepath. string().c_str(), &width, &height, &channels, STBI_rgb_alpha);
-    
+    unsigned char* pixels = stbi_load(filepath.string().c_str(), &width, &height, &channels, STBI_rgb_alpha);
+
     if (pixels == nullptr) {
         log::Error("Failed to load texture from file: {}", filepath.string());
         return CreateOpenGLTexture2D(device, 1, 1, TextureFormat::RGBA8, nullptr);
     }
 
-    auto texture = CreateOpenGLTexture2D(device, static_cast<u32>(width), static_cast<u32>(height), TextureFormat::RGBA8, pixels);
-    
+    auto texture = CreateOpenGLTexture2D(
+        device,
+        static_cast<u32>(width),
+        static_cast<u32>(height),
+        TextureFormat::RGBA8,
+        pixels
+    );
+
     stbi_image_free(pixels);
-    
+
     return texture;
 }
 
-scope<TextureCube> CreateOpenGLTextureCube(Device* /*device*/, u32 size, TextureFormat format) {
+scope<TextureCube> CreateOpenGLTextureCube(
+    Device* /*device*/,
+    u32 size,
+    TextureFormat format
+) {
     std::array<const void*, CUBEMAP_FACE_COUNT> faceData{};
     auto impl = scope<TextureImpl>(new OpenGLTextureCubeImpl(size, format, faceData));
     return scope<TextureCube>(new TextureCube(size, format, std::move(impl)));
 }
 
-scope<TextureCube> CreateOpenGLTextureCubeFromFiles(Device* device, const std::array<std::filesystem::path, CUBEMAP_FACE_COUNT>& faces) {
+scope<TextureCube> CreateOpenGLTextureCubeFromFiles(
+    Device* device,
+    const std::array<std::filesystem::path, CUBEMAP_FACE_COUNT>& faces
+) {
     std::array<std::unique_ptr<unsigned char, decltype(&stbi_image_free)>, CUBEMAP_FACE_COUNT> loadedData = {
         std::unique_ptr<unsigned char, decltype(&stbi_image_free)>(nullptr, stbi_image_free),
         std::unique_ptr<unsigned char, decltype(&stbi_image_free)>(nullptr, stbi_image_free),
@@ -288,18 +337,24 @@ scope<TextureCube> CreateOpenGLTextureCubeFromFiles(Device* device, const std::a
 
     std::array<const void*, CUBEMAP_FACE_COUNT> faceData{};
     u32 size = 0;
-    
+
     stbi_set_flip_vertically_on_load(0);
-    
+
     for (u32 i = 0; i < CUBEMAP_FACE_COUNT; ++i) {
-        if (! faces[i].empty()) {
+        if (!faces[i].empty()) {
             int width = 0, height = 0, channels = 0;
-            unsigned char* pixels = stbi_load(faces[i].string().c_str(), &width, &height, &channels, STBI_rgb_alpha);
-            
+            unsigned char* pixels = stbi_load(
+                faces[i].string().c_str(),
+                &width,
+                &height,
+                &channels,
+                STBI_rgb_alpha
+            );
+
             if (pixels == nullptr) {
                 log::Error("Failed to load cubemap face {} from file: {}", i, faces[i].string());
             } else {
-                loadedData[i]. reset(pixels);
+                loadedData[i].reset(pixels);
                 faceData[i] = pixels;
                 if (i == 0) {
                     size = static_cast<u32>(width);
@@ -308,7 +363,9 @@ scope<TextureCube> CreateOpenGLTextureCubeFromFiles(Device* device, const std::a
         }
     }
 
-    return CreateOpenGLTextureCube(device, size, TextureFormat::RGBA8);
+    //NOTE: pass faceData to actually upload pixels
+    auto impl = scope<TextureImpl>(new OpenGLTextureCubeImpl(size, TextureFormat::RGBA8, faceData));
+    return scope<TextureCube>(new TextureCube(size, TextureFormat::RGBA8, std::move(impl)));
 }
 
 } // namespace cc::gfx

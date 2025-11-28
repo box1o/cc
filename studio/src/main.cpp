@@ -5,6 +5,7 @@
 #include <vector>
 #include <cmath>
 #include <array>
+#include <filesystem>
 
 #define CC_PI 3.14159265358979323846f
 
@@ -45,6 +46,16 @@ struct SkyboxUniforms {
     cc::mat4f viewProjection;
 };
 
+struct WaterUniforms {
+    cc::mat4f model;
+    cc::mat4f view;
+    cc::mat4f projection;
+    cc::vec3f viewPos;
+    float time;
+    cc::vec3f waterColor;
+    float waveStrength;
+};
+
 struct CameraState {
     float distance = 12.0f;
     float yaw = 0.5f;
@@ -57,8 +68,6 @@ struct CameraState {
     float zoomSpeed = 0.5f;
     float minDistance = 3.0f;
     float maxDistance = 30.0f;
-    float minPitch = 0.1f;
-    float maxPitch = 1.4f;
 };
 
 static CameraState g_camera;
@@ -102,7 +111,7 @@ int main() {
     cc::log::Init("studio");
 
     auto window = cc::gfx::Window::Create()
-        .SetTitle("Studio Engine - PBR with Skybox")
+        .SetTitle("Studio Engine - PBR + Glass + Water + Skybox")
         .SetSize(1280, 720)
         .SetVSync(true)
         .Build();
@@ -131,14 +140,10 @@ int main() {
                 g_camera.lastMouseX = x;
                 g_camera.lastMouseY = y;
                 g_camera.firstMouse = false;
-                return;
+            } else {
+                g_camera.yaw   -= (x - g_camera.lastMouseX) * g_camera.sensitivity;
+                g_camera.pitch += (y - g_camera.lastMouseY) * g_camera.sensitivity;
             }
-
-            g_camera.yaw -= (x - g_camera.lastMouseX) * g_camera.sensitivity;
-            g_camera.pitch += (y - g_camera.lastMouseY) * g_camera.sensitivity;
-
-            if (g_camera.pitch < g_camera.minPitch) g_camera.pitch = g_camera.minPitch;
-            if (g_camera.pitch > g_camera.maxPitch) g_camera.pitch = g_camera.maxPitch;
         }
 
         g_camera.lastMouseX = x;
@@ -163,7 +168,6 @@ int main() {
         }
     });
 
-    //NOTE: OpenGL cubemap face order: +X, -X, +Y, -Y, +Z, -Z
     std::array<std::filesystem::path, 6> cubemapFaces = {
         "resources/textures/clouds/posx.png",
         "resources/textures/clouds/negx.png",
@@ -191,6 +195,16 @@ int main() {
     auto pbrShader = cc::gfx::Shader::Create(device.get())
         .AddStage(cc::gfx::ShaderStage::Vertex, "resources/shaders/lit.vert")
         .AddStage(cc::gfx::ShaderStage::Fragment, "resources/shaders/lit.frag")
+        .Build();
+
+    auto sphereShader = cc::gfx::Shader::Create(device.get())
+        .AddStage(cc::gfx::ShaderStage::Vertex, "resources/shaders/sphere_glass.vert")
+        .AddStage(cc::gfx::ShaderStage::Fragment, "resources/shaders/sphere_glass.frag")
+        .Build();
+
+    auto waterShader = cc::gfx::Shader::Create(device.get())
+        .AddStage(cc::gfx::ShaderStage::Vertex, "resources/shaders/water.vert")
+        .AddStage(cc::gfx::ShaderStage::Fragment, "resources/shaders/water.frag")
         .Build();
 
     auto skyboxShader = cc::gfx::Shader::Create(device.get())
@@ -281,31 +295,72 @@ int main() {
 
     cc::u32 planeIndices[] = {0, 1, 2, 2, 3, 0};
 
+    //NOTE: Water surface slightly above plane (pool water)
+    Vertex waterVertices[] = {
+        {{-planeSize, 0.02f,  planeSize}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+        {{ planeSize, 0.02f,  planeSize}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+        {{ planeSize, 0.02f, -planeSize}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+        {{-planeSize, 0.02f, -planeSize}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+    };
+    cc::u32 waterIndices[] = {0, 1, 2, 2, 3, 0};
+
     std::vector<Vertex> sphereVertices;
     std::vector<cc::u32> sphereIndices;
     generateSphere(sphereVertices, sphereIndices, 1.5f, 64, 64, cc::vec3f(0.9f, 0.9f, 1.0f));
 
-    auto skyboxVertexBuffer = cc::gfx::Buffer::Create(device.get(), cc::gfx::BufferType::Vertex,
-        sizeof(skyboxVertices), cc::gfx::BufferUsage::Static, skyboxVertices);
-    auto cubeVertexBuffer = cc::gfx::Buffer::Create(device.get(), cc::gfx::BufferType::Vertex,
-        sizeof(cubeVertices), cc::gfx::BufferUsage::Static, cubeVertices);
-    auto cubeIndexBuffer = cc::gfx::Buffer::Create(device.get(), cc::gfx::BufferType::Index,
-        sizeof(cubeIndices), cc::gfx::BufferUsage::Static, cubeIndices);
-    auto planeVertexBuffer = cc::gfx::Buffer::Create(device.get(), cc::gfx::BufferType::Vertex,
-        sizeof(planeVertices), cc::gfx::BufferUsage::Static, planeVertices);
-    auto planeIndexBuffer = cc::gfx::Buffer::Create(device.get(), cc::gfx::BufferType::Index,
-        sizeof(planeIndices), cc::gfx::BufferUsage::Static, planeIndices);
-    auto sphereVertexBuffer = cc::gfx::Buffer::Create(device.get(), cc::gfx::BufferType::Vertex,
-        sphereVertices.size() * sizeof(Vertex), cc::gfx::BufferUsage::Static, sphereVertices.data());
-    auto sphereIndexBuffer = cc::gfx::Buffer::Create(device.get(), cc::gfx::BufferType::Index,
-        sphereIndices.size() * sizeof(cc::u32), cc::gfx::BufferUsage::Static, sphereIndices.data());
+    auto skyboxVertexBuffer = cc::gfx::Buffer::Create(
+        device.get(), cc::gfx::BufferType::Vertex,
+        sizeof(skyboxVertices), cc::gfx::BufferUsage::Static, skyboxVertices
+    );
+    auto cubeVertexBuffer = cc::gfx::Buffer::Create(
+        device.get(), cc::gfx::BufferType::Vertex,
+        sizeof(cubeVertices), cc::gfx::BufferUsage::Static, cubeVertices
+    );
+    auto cubeIndexBuffer = cc::gfx::Buffer::Create(
+        device.get(), cc::gfx::BufferType::Index,
+        sizeof(cubeIndices), cc::gfx::BufferUsage::Static, cubeIndices
+    );
+    auto planeVertexBuffer = cc::gfx::Buffer::Create(
+        device.get(), cc::gfx::BufferType::Vertex,
+        sizeof(planeVertices), cc::gfx::BufferUsage::Static, planeVertices
+    );
+    auto planeIndexBuffer = cc::gfx::Buffer::Create(
+        device.get(), cc::gfx::BufferType::Index,
+        sizeof(planeIndices), cc::gfx::BufferUsage::Static, planeIndices
+    );
+    auto waterVertexBuffer = cc::gfx::Buffer::Create(
+        device.get(), cc::gfx::BufferType::Vertex,
+        sizeof(waterVertices), cc::gfx::BufferUsage::Static, waterVertices
+    );
+    auto waterIndexBuffer = cc::gfx::Buffer::Create(
+        device.get(), cc::gfx::BufferType::Index,
+        sizeof(waterIndices), cc::gfx::BufferUsage::Static, waterIndices
+    );
+    auto sphereVertexBuffer = cc::gfx::Buffer::Create(
+        device.get(), cc::gfx::BufferType::Vertex,
+        sphereVertices.size() * sizeof(Vertex), cc::gfx::BufferUsage::Static, sphereVertices.data()
+    );
+    auto sphereIndexBuffer = cc::gfx::Buffer::Create(
+        device.get(), cc::gfx::BufferType::Index,
+        sphereIndices.size() * sizeof(cc::u32), cc::gfx::BufferUsage::Static, sphereIndices.data()
+    );
 
-    auto shadowUniformBuffer = cc::gfx::Buffer::Create(device.get(), cc::gfx::BufferType::Uniform,
-        sizeof(ShadowUniforms), cc::gfx::BufferUsage::Dynamic, nullptr);
-    auto pbrUniformBuffer = cc::gfx::Buffer::Create(device.get(), cc::gfx::BufferType::Uniform,
-        sizeof(PBRUniforms), cc::gfx::BufferUsage::Dynamic, nullptr);
-    auto skyboxUniformBuffer = cc::gfx::Buffer::Create(device.get(), cc::gfx::BufferType::Uniform,
-        sizeof(SkyboxUniforms), cc::gfx::BufferUsage::Dynamic, nullptr);
+    auto shadowUniformBuffer = cc::gfx::Buffer::Create(
+        device.get(), cc::gfx::BufferType::Uniform,
+        sizeof(ShadowUniforms), cc::gfx::BufferUsage::Dynamic, nullptr
+    );
+    auto pbrUniformBuffer = cc::gfx::Buffer::Create(
+        device.get(), cc::gfx::BufferType::Uniform,
+        sizeof(PBRUniforms), cc::gfx::BufferUsage::Dynamic, nullptr
+    );
+    auto skyboxUniformBuffer = cc::gfx::Buffer::Create(
+        device.get(), cc::gfx::BufferType::Uniform,
+        sizeof(SkyboxUniforms), cc::gfx::BufferUsage::Dynamic, nullptr
+    );
+    auto waterUniformBuffer = cc::gfx::Buffer::Create(
+        device.get(), cc::gfx::BufferType::Uniform,
+        sizeof(WaterUniforms), cc::gfx::BufferUsage::Dynamic, nullptr
+    );
 
     auto vertexLayout = cc::gfx::VertexLayout::Create()
         .Binding(0, sizeof(Vertex), cc::gfx::VertexInputRate::PerVertex)
@@ -344,6 +399,15 @@ int main() {
         .Bind(0, skyboxUniformBuffer.get())
         .Build();
 
+    auto waterDescriptorLayout = cc::gfx::DescriptorSetLayout::Create(device.get())
+        .Binding(0, cc::gfx::DescriptorType::UniformBuffer,
+                 cc::gfx::ShaderStage::Vertex | cc::gfx::ShaderStage::Fragment)
+        .Build();
+
+    auto waterDescriptorSet = cc::gfx::DescriptorSet::Create(device.get(), waterDescriptorLayout.get())
+        .Bind(0, waterUniformBuffer.get())
+        .Build();
+
     auto shadowPipeline = cc::gfx::Pipeline::Create(device.get())
         .SetShader(shadowShader.get())
         .SetVertexLayout(vertexLayout.get())
@@ -360,6 +424,34 @@ int main() {
         .SetShader(pbrShader.get())
         .SetVertexLayout(vertexLayout.get())
         .AddDescriptorLayout(pbrDescriptorLayout.get())
+        .SetPrimitiveTopology(cc::gfx::PrimitiveTopology::TriangleList)
+        .SetCullMode(cc::gfx::CullMode::Back)
+        .SetFrontFace(cc::gfx::FrontFace::CounterClockwise)
+        .SetDepthTest(true)
+        .SetDepthWrite(true)
+        .SetDepthCompare(cc::gfx::CompareOp::Less)
+        .SetBlendEnabled(false)
+        .Build();
+
+    auto spherePipeline = cc::gfx::Pipeline::Create(device.get())
+        .SetShader(sphereShader.get())
+        .SetVertexLayout(vertexLayout.get())
+        .AddDescriptorLayout(pbrDescriptorLayout.get())
+        .SetPrimitiveTopology(cc::gfx::PrimitiveTopology::TriangleList)
+        .SetCullMode(cc::gfx::CullMode::Back)
+        .SetFrontFace(cc::gfx::FrontFace::CounterClockwise)
+        .SetDepthTest(true)
+        .SetDepthWrite(true)
+        .SetDepthCompare(cc::gfx::CompareOp::Less)
+        .SetBlendEnabled(true)
+        .SetBlendSrcColor(cc::gfx::BlendFactor::SrcAlpha)
+        .SetBlendDstColor(cc::gfx::BlendFactor::OneMinusSrcAlpha)
+        .Build();
+
+    auto waterPipeline = cc::gfx::Pipeline::Create(device.get())
+        .SetShader(waterShader.get())
+        .SetVertexLayout(vertexLayout.get())
+        .AddDescriptorLayout(waterDescriptorLayout.get())
         .SetPrimitiveTopology(cc::gfx::PrimitiveTopology::TriangleList)
         .SetCullMode(cc::gfx::CullMode::Back)
         .SetFrontFace(cc::gfx::FrontFace::CounterClockwise)
@@ -384,45 +476,71 @@ int main() {
         .Build();
 
     shadowShader->SetUniformBlock("ShadowUniforms", 0);
+
     pbrShader->SetUniformBlock("PBRUniforms", 0);
     pbrShader->SetSampler("shadowMap", 0);
     pbrShader->SetSampler("environmentMap", 1);
+
+    sphereShader->SetUniformBlock("PBRUniforms", 0);
+    sphereShader->SetSampler("shadowMap", 0);
+    sphereShader->SetSampler("environmentMap", 1);
+
+    waterShader->SetUniformBlock("WaterUniforms", 0);
+    waterShader->SetSampler("environmentMap", 0);
+
     skyboxShader->SetUniformBlock("SkyboxUniforms", 0);
     skyboxShader->SetSampler("skybox", 0);
 
     auto* pSkyboxVB = skyboxVertexBuffer.get();
-    auto* pCubeVB = cubeVertexBuffer.get();
-    auto* pCubeIB = cubeIndexBuffer.get();
-    auto* pPlaneVB = planeVertexBuffer.get();
-    auto* pPlaneIB = planeIndexBuffer.get();
+    auto* pCubeVB   = cubeVertexBuffer.get();
+    auto* pCubeIB   = cubeIndexBuffer.get();
+    auto* pPlaneVB  = planeVertexBuffer.get();
+    auto* pPlaneIB  = planeIndexBuffer.get();
+    auto* pWaterVB  = waterVertexBuffer.get();
+    auto* pWaterIB  = waterIndexBuffer.get();
     auto* pSphereVB = sphereVertexBuffer.get();
     auto* pSphereIB = sphereIndexBuffer.get();
-    auto* pShadowPipeline = shadowPipeline.get();
-    auto* pPBRPipeline = pbrPipeline.get();
-    auto* pSkyboxPipeline = skyboxPipeline.get();
-    auto* pShadowDescSet = shadowDescriptorSet.get();
-    auto* pPBRDescSet = pbrDescriptorSet.get();
-    auto* pSkyboxDescSet = skyboxDescriptorSet.get();
+
+    auto* pShadowPipeline  = shadowPipeline.get();
+    auto* pPBRPipeline     = pbrPipeline.get();
+    auto* pSpherePipeline  = spherePipeline.get();
+    auto* pWaterPipeline   = waterPipeline.get();
+    auto* pSkyboxPipeline  = skyboxPipeline.get();
+
+    auto* pShadowDescSet   = shadowDescriptorSet.get();
+    auto* pPBRDescSet      = pbrDescriptorSet.get();
+    auto* pSkyboxDescSet   = skyboxDescriptorSet.get();
+    auto* pWaterDescSet    = waterDescriptorSet.get();
+
     auto* pShadowUniformBuffer = shadowUniformBuffer.get();
-    auto* pPBRUniformBuffer = pbrUniformBuffer.get();
+    auto* pPBRUniformBuffer    = pbrUniformBuffer.get();
     auto* pSkyboxUniformBuffer = skyboxUniformBuffer.get();
+    auto* pWaterUniformBuffer  = waterUniformBuffer.get();
+
     auto* pShadowFramebuffer = shadowFramebuffer.get();
-    auto* pShadowMapTexture = shadowMapTexture.get();
-    auto* pShadowSampler = shadowSampler.get();
-    auto* pSkyboxTexture = skyboxTexture.get();
-    auto* pSkyboxSampler = skyboxSampler.get();
-    auto* pSwapchain = swapchain.get();
+    auto* pShadowMapTexture  = shadowMapTexture.get();
+    auto* pShadowSampler     = shadowSampler.get();
+    auto* pSkyboxTexture     = skyboxTexture.get();
+    auto* pSkyboxSampler     = skyboxSampler.get();
+    auto* pSwapchain         = swapchain.get();
+
     cc::u32 sphereIndexCount = static_cast<cc::u32>(sphereIndices.size());
 
-    cc::mat4f cubeModel = cc::translate(cc::vec3f(-3.0f, 0.5f, 0.0f));
-    cc::mat4f sphereModel = cc::translate(cc::vec3f(2.5f, 1.5f, 0.0f));
-    cc::mat4f planeModel = cc::mat4f::identity();
-    ShadowUniforms shadowUniforms{};
-    PBRUniforms pbrUniforms{};
-    SkyboxUniforms skyboxUniforms{};
+    cc::mat4f cubeModel    = cc::translate(cc::vec3f(-3.0f, 0.5f, 0.0f));
+    cc::mat4f sphereModel  = cc::translate(cc::vec3f(2.5f, 1.5f, 0.0f));
+    cc::mat4f planeModel   = cc::mat4f::identity();
+    cc::mat4f waterModel   = cc::mat4f::identity();
+
+    ShadowUniforms  shadowUniforms{};
+    PBRUniforms     pbrUniforms{};
+    SkyboxUniforms  skyboxUniforms{};
+    WaterUniforms   waterUniforms{};
+
+    waterUniforms.waterColor   = cc::vec3f(0.0f, 0.4f, 0.6f);
+    waterUniforms.waveStrength = 0.12f;
 
     cc::vec3f lightDir = cc::vec3f(0.5f, 1.0f, 0.3f).norm();
-    float lightDistance = 15.0f;
+    float lightDistance  = 15.0f;
     float lightOrthoSize = 15.0f;
 
     auto renderGraph = cc::gfx::RenderGraph::Create(device.get());
@@ -461,11 +579,15 @@ int main() {
         .Read(pShadowMapTexture, cc::gfx::ResourceState::ShaderRead)
         .Write(cc::gfx::ResourceHandle::Backbuffer())
         .Execute([&](cc::gfx::CommandBuffer& cmd) {
-            cmd.SetViewport(0, 0, static_cast<float>(pSwapchain->GetWidth()),
-                static_cast<float>(pSwapchain->GetHeight()));
+            cmd.SetViewport(
+                0.0f,
+                0.0f,
+                static_cast<float>(pSwapchain->GetWidth()),
+                static_cast<float>(pSwapchain->GetHeight())
+            );
             cmd.SetScissor(0, 0, pSwapchain->GetWidth(), pSwapchain->GetHeight());
 
-            //NOTE: Render skybox first
+            // Skybox
             pSkyboxTexture->Bind(0);
             pSkyboxSampler->Bind(0);
             cmd.BindPipeline(pSkyboxPipeline);
@@ -474,40 +596,58 @@ int main() {
             cmd.BindVertexBuffer(0, pSkyboxVB);
             cmd.Draw(36);
 
-            //NOTE: Render opaque objects
+            // Common shadow/env bindings
             pShadowMapTexture->Bind(0);
             pShadowSampler->Bind(0);
             pSkyboxTexture->Bind(1);
             pSkyboxSampler->Bind(1);
+
+            // Opaque PBR: plane
             cmd.BindPipeline(pPBRPipeline);
             cmd.BindDescriptorSet(0, pPBRDescSet);
-
-            pbrUniforms.model = planeModel;
-            pbrUniforms.metallic = 0.0f;
+            pbrUniforms.model     = planeModel;
+            pbrUniforms.metallic  = 0.0f;
             pbrUniforms.roughness = 0.9f;
-            pbrUniforms.ao = 1.0f;
-            pbrUniforms.isGlass = 0.0f;
+            pbrUniforms.ao        = 1.0f;
+            pbrUniforms.isGlass   = 0.0f;
             pPBRUniformBuffer->Update(&pbrUniforms, sizeof(PBRUniforms));
             cmd.BindVertexBuffer(0, pPlaneVB);
             cmd.BindIndexBuffer(pPlaneIB);
             cmd.DrawIndexed(6);
 
-            pbrUniforms.model = cubeModel;
-            pbrUniforms.metallic = 0.9f;
+            // Opaque PBR: cube
+            pbrUniforms.model     = cubeModel;
+            pbrUniforms.metallic  = 0.9f;
             pbrUniforms.roughness = 0.1f;
-            pbrUniforms.ao = 1.0f;
-            pbrUniforms.isGlass = 0.0f;
+            pbrUniforms.ao        = 1.0f;
+            pbrUniforms.isGlass   = 0.0f;
             pPBRUniformBuffer->Update(&pbrUniforms, sizeof(PBRUniforms));
             cmd.BindVertexBuffer(0, pCubeVB);
             cmd.BindIndexBuffer(pCubeIB);
             cmd.DrawIndexed(36);
 
-            //NOTE: Render transparent objects last
-            pbrUniforms.model = sphereModel;
-            pbrUniforms.metallic = 0.0f;
-            pbrUniforms.roughness = 0.02f;
-            pbrUniforms.ao = 1.0f;
-            pbrUniforms.isGlass = 1.0f;
+            // Water (alpha-blended but drawn before glass sphere)
+            pSkyboxTexture->Bind(0);
+            pSkyboxSampler->Bind(0);
+            cmd.BindPipeline(pWaterPipeline);
+            cmd.BindDescriptorSet(0, pWaterDescSet);
+            pWaterUniformBuffer->Update(&waterUniforms, sizeof(WaterUniforms));
+            cmd.BindVertexBuffer(0, pWaterVB);
+            cmd.BindIndexBuffer(pWaterIB);
+            cmd.DrawIndexed(6);
+
+            // Glass sphere
+            pShadowMapTexture->Bind(0);
+            pShadowSampler->Bind(0);
+            pSkyboxTexture->Bind(1);
+            pSkyboxSampler->Bind(1);
+            cmd.BindPipeline(pSpherePipeline);
+            cmd.BindDescriptorSet(0, pPBRDescSet);
+            pbrUniforms.model     = sphereModel;
+            pbrUniforms.metallic  = 0.0f;
+            pbrUniforms.roughness = 0.05f;
+            pbrUniforms.ao        = 1.0f;
+            pbrUniforms.isGlass   = 1.0f;
             pPBRUniformBuffer->Update(&pbrUniforms, sizeof(PBRUniforms));
             cmd.BindVertexBuffer(0, pSphereVB);
             cmd.BindIndexBuffer(pSphereIB);
@@ -517,8 +657,8 @@ int main() {
     renderGraph->SetSwapchain(swapchain.get());
     renderGraph->Compile();
 
-    cc::log::Info("Initialization complete - PBR with Skybox");
-    cc::log::Info("Controls: Left Mouse + Drag = Rotate, Scroll = Zoom, R = Reset, Escape = Quit");
+    cc::log::Info("Initialization complete - PBR + Glass + Water + Skybox");
+    cc::log::Info("Controls: LMB Drag = Orbit, Scroll = Zoom, R = Reset, Esc = Quit");
 
     float time = 0.0f;
 
@@ -534,16 +674,23 @@ int main() {
         ).norm();
 
         cc::vec3f lightPos = lightDir * lightDistance;
-        cc::mat4f lightView = cc::look_at(lightPos, cc::vec3f(0.0f, 0.0f, 0.0f),
-            cc::vec3f(0.0f, 1.0f, 0.0f));
-        cc::mat4f lightProjection = cc::ortho(-lightOrthoSize, lightOrthoSize,
-            -lightOrthoSize, lightOrthoSize, 0.1f, lightDistance * 2.5f);
+        cc::mat4f lightView = cc::look_at(
+            lightPos,
+            cc::vec3f(0.0f, 0.0f, 0.0f),
+            cc::vec3f(0.0f, 1.0f, 0.0f)
+        );
+        cc::mat4f lightProjection = cc::ortho(
+            -lightOrthoSize, lightOrthoSize,
+            -lightOrthoSize, lightOrthoSize,
+            0.1f,
+            lightDistance * 2.5f
+        );
         cc::mat4f lightSpaceMatrix = lightProjection * lightView;
 
         shadowUniforms.lightSpaceMatrix = lightSpaceMatrix;
 
         float horizontalDist = g_camera.distance * std::cos(g_camera.pitch);
-        float verticalDist = g_camera.distance * std::sin(g_camera.pitch);
+        float verticalDist   = g_camera.distance * std::sin(g_camera.pitch);
         cc::vec3f cameraPos = cc::vec3f(
             std::cos(g_camera.yaw) * horizontalDist,
             verticalDist,
@@ -551,22 +698,27 @@ int main() {
         );
 
         cc::vec3f targetPos = cc::vec3f(0.0f, 1.0f, 0.0f);
-        cc::vec3f upDir = cc::vec3f(0.0f, 1.0f, 0.0f);
+        cc::vec3f upDir     = cc::vec3f(0.0f, 1.0f, 0.0f);
         cc::f32 aspect = static_cast<cc::f32>(swapchain->GetWidth()) /
-            static_cast<cc::f32>(swapchain->GetHeight());
+                         static_cast<cc::f32>(swapchain->GetHeight());
 
         cc::mat4f view = cc::look_at(cameraPos + targetPos, targetPos, upDir);
         cc::mat4f projection = cc::perspective(cc::rad(45.0f), aspect, 0.1f, 100.0f);
 
-        pbrUniforms.view = view;
-        pbrUniforms.projection = projection;
+        pbrUniforms.view             = view;
+        pbrUniforms.projection       = projection;
         pbrUniforms.lightSpaceMatrix = lightSpaceMatrix;
-        pbrUniforms.lightDir = lightDir;
-        pbrUniforms.lightColor = cc::vec3f(3.0f, 3.0f, 3.0f);
-        pbrUniforms.viewPos = cameraPos + targetPos;
-        pbrUniforms.albedo = cc::vec3f(1.0f, 1.0f, 1.0f);
+        pbrUniforms.lightDir         = lightDir;
+        pbrUniforms.lightColor       = cc::vec3f(3.0f, 3.0f, 3.0f);
+        pbrUniforms.viewPos          = cameraPos + targetPos;
+        pbrUniforms.albedo           = cc::vec3f(1.0f, 1.0f, 1.0f);
 
-        //NOTE: Remove translation from view matrix for skybox
+        waterUniforms.model      = waterModel;
+        waterUniforms.view       = view;
+        waterUniforms.projection = projection;
+        waterUniforms.viewPos    = cameraPos + targetPos;
+        waterUniforms.time       = time;
+
         cc::mat4f viewNoTranslation = view;
         viewNoTranslation[3][0] = 0.0f;
         viewNoTranslation[3][1] = 0.0f;
