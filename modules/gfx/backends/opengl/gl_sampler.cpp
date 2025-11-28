@@ -7,7 +7,7 @@ namespace cc::gfx {
 
 namespace {
 
-unsigned int GetGLFilter(TextureFilter filter) {
+[[nodiscard]] unsigned int GetGLFilter(TextureFilter filter) noexcept {
     switch (filter) {
         case TextureFilter::Nearest: return GL_NEAREST;
         case TextureFilter::Linear:  return GL_LINEAR;
@@ -15,7 +15,7 @@ unsigned int GetGLFilter(TextureFilter filter) {
     return GL_LINEAR;
 }
 
-unsigned int GetGLWrap(TextureWrap wrap) {
+[[nodiscard]] unsigned int GetGLWrap(TextureWrap wrap) noexcept {
     switch (wrap) {
         case TextureWrap::Repeat:        return GL_REPEAT;
         case TextureWrap::MirrorRepeat:  return GL_MIRRORED_REPEAT;
@@ -58,10 +58,10 @@ OpenGLSamplerImpl::~OpenGLSamplerImpl() {
 }
 
 void OpenGLSamplerImpl::Bind(u32 slot) const {
-    glBindSampler(slot, handle_);
+    glBindSampler(static_cast<unsigned int>(slot), handle_);
 }
 
-scope<Sampler> CreateOpenGLSampler(Device* /*device*/, const SamplerConfig& config) {
+[[nodiscard]] scope<Sampler> CreateOpenGLSampler(Device* /*device*/, const SamplerConfig& config) {
     auto impl = scope<SamplerImpl>(new OpenGLSamplerImpl(config));
     return scope<Sampler>(new Sampler(config, std::move(impl)));
 }

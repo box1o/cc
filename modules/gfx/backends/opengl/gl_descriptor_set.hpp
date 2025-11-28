@@ -21,7 +21,7 @@ public:
     void Update(u32 binding, Buffer* buffer, u64 offset = 0, u64 range = 0) override;
     void Update(u32 binding, Texture* texture, Sampler* sampler = nullptr) override;
 
-    u32 GetHandle() const override { return handle_; }
+    [[nodiscard]] u32 GetHandle() const noexcept override { return handle_; }
 
 private:
     void BindBuffers(u32 setIndex) const;
@@ -34,7 +34,7 @@ private:
     static inline u32 s_nextHandle{1};
 };
 
-scope<DescriptorSet> CreateOpenGLDescriptorSet(
+[[nodiscard]] scope<DescriptorSet> CreateOpenGLDescriptorSet(
     Device* device,
     DescriptorSetLayout* layout,
     const std::vector<BufferBinding>& bufferBindings,

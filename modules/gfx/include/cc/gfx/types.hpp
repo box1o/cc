@@ -193,23 +193,23 @@ enum class VertexInputRate : u8 {
 
 // NOTE: Descriptor Types
 enum class DescriptorType : u8 {
-    UniformBuffer      = 0,
-    StorageBuffer      = 1,
-    SampledTexture     = 2,
-    StorageTexture     = 3,
-    Sampler            = 4,
+    UniformBuffer        = 0,
+    StorageBuffer        = 1,
+    SampledTexture       = 2,
+    StorageTexture       = 3,
+    Sampler              = 4,
     CombinedImageSampler = 5
 };
 
 // NOTE: Render Pass Types
 enum class LoadOp : u8 {
-    Load   = 0,
-    Clear  = 1,
+    Load     = 0,
+    Clear    = 1,
     DontCare = 2
 };
 
 enum class StoreOp : u8 {
-    Store  = 0,
+    Store    = 0,
     DontCare = 1
 };
 
@@ -412,8 +412,13 @@ struct ClearValue {
     ClearValue(f32 r, f32 g, f32 b, f32 a = 1.0f) : color{r, g, b, a} {}
     ClearValue(f32 depth, u32 stencil = 0) : depthStencil{depth, stencil} {}
 
-    static ClearValue Color(f32 r, f32 g, f32 b, f32 a = 1.0f) { return ClearValue(r, g, b, a); }
-    static ClearValue Depth(f32 depth = 1.0f, u32 stencil = 0) { return ClearValue(depth, stencil); }
+    [[nodiscard]] static ClearValue Color(f32 r, f32 g, f32 b, f32 a = 1.0f) {
+        return ClearValue(r, g, b, a);
+    }
+
+    [[nodiscard]] static ClearValue Depth(f32 depth = 1.0f, u32 stencil = 0) {
+        return ClearValue(depth, stencil);
+    }
 };
 
 // NOTE: Render Pass Attachment Configuration
@@ -446,9 +451,9 @@ struct RenderPassBeginInfo {
 };
 
 // NOTE: Command Buffer Limits
-constexpr u32 MAX_DESCRIPTOR_SETS = 8;
-constexpr u32 MAX_VERTEX_BINDINGS = 16;
+constexpr u32 MAX_DESCRIPTOR_SETS   = 8;
+constexpr u32 MAX_VERTEX_BINDINGS   = 16;
 constexpr u32 MAX_COLOR_ATTACHMENTS = 8;
-constexpr u32 MAX_RENDER_PASSES = 64;
+constexpr u32 MAX_RENDER_PASSES     = 64;
 
 } // namespace cc::gfx

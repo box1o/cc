@@ -14,41 +14,47 @@ struct ResourceHandle {
         void* ptr;
     };
 
-    ResourceHandle() : type(ResourceType::None), ptr(nullptr) {}
+    ResourceHandle() noexcept
+        : type(ResourceType::None)
+        , ptr(nullptr) {}
 
-    explicit ResourceHandle(Texture* tex) 
-    : type(ResourceType::Texture), texture(tex) {}
+    explicit ResourceHandle(Texture* tex) noexcept
+        : type(ResourceType::Texture)
+        , texture(tex) {}
 
-    explicit ResourceHandle(Buffer* buf) 
-    : type(ResourceType::Buffer), buffer(buf) {}
+    explicit ResourceHandle(Buffer* buf) noexcept
+        : type(ResourceType::Buffer)
+        , buffer(buf) {}
 
-    static ResourceHandle Backbuffer() {
+    [[nodiscard]] static ResourceHandle Backbuffer() noexcept {
         ResourceHandle handle;
-        handle. type = ResourceType::Backbuffer;
+        handle.type = ResourceType::Backbuffer;
         handle.ptr = nullptr;
         return handle;
     }
 
-    bool IsValid() const { return type != ResourceType::None; }
-    bool IsBackbuffer() const { return type == ResourceType::Backbuffer; }
-    bool IsTexture() const { return type == ResourceType::Texture; }
-    bool IsBuffer() const { return type == ResourceType::Buffer; }
+    [[nodiscard]] bool IsValid() const noexcept { return type != ResourceType::None; }
+    [[nodiscard]] bool IsBackbuffer() const noexcept { return type == ResourceType::Backbuffer; }
+    [[nodiscard]] bool IsTexture() const noexcept { return type == ResourceType::Texture; }
+    [[nodiscard]] bool IsBuffer() const noexcept { return type == ResourceType::Buffer; }
 
-    Texture* GetTexture() const { return IsTexture() ? texture : nullptr; }
-    Buffer* GetBuffer() const { return IsBuffer() ? buffer : nullptr; }
+    [[nodiscard]] Texture* GetTexture() const noexcept { return IsTexture() ? texture : nullptr; }
+    [[nodiscard]] Buffer* GetBuffer() const noexcept { return IsBuffer() ? buffer : nullptr; }
 
-    bool operator==(const ResourceHandle& other) const {
-        if (type != other. type) return false;
+    [[nodiscard]] bool operator==(const ResourceHandle& other) const noexcept {
+        if (type != other.type) {
+            return false;
+        }
         return ptr == other.ptr;
     }
 
-    bool operator!=(const ResourceHandle& other) const {
+    [[nodiscard]] bool operator!=(const ResourceHandle& other) const noexcept {
         return !(*this == other);
     }
 };
 
 struct ResourceAccess {
-    ResourceHandle handle;
+    ResourceHandle handle{};
     ResourceState state{ResourceState::Undefined};
 };
 

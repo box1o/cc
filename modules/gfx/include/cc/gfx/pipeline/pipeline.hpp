@@ -29,7 +29,7 @@ public:
         Builder& SetBlendSrcAlpha(BlendFactor factor);
         Builder& SetBlendDstAlpha(BlendFactor factor);
         Builder& SetBlendAlphaOp(BlendOp op);
-        scope<Pipeline> Build();
+        [[nodiscard]] scope<Pipeline> Build();
 
     private:
         Device* device_{nullptr};
@@ -46,24 +46,30 @@ public:
 
     virtual ~Pipeline() = default;
 
-    static Builder Create(Device* device);
+    [[nodiscard]] static Builder Create(Device* device);
 
-    Shader* GetShader() const { return shader_; }
-    VertexLayout* GetVertexLayout() const { return vertexLayout_; }
-    const std::vector<DescriptorSetLayout*>& GetDescriptorLayouts() const { return descriptorLayouts_; }
-    PrimitiveTopology GetTopology() const { return topology_; }
-    const RasterizerState& GetRasterizerState() const { return rasterizer_; }
-    const DepthStencilState& GetDepthStencilState() const { return depthStencil_; }
-    const BlendState& GetBlendState() const { return blend_; }
+    [[nodiscard]] Shader* GetShader() const noexcept { return shader_; }
+    [[nodiscard]] VertexLayout* GetVertexLayout() const noexcept { return vertexLayout_; }
+    [[nodiscard]] const std::vector<DescriptorSetLayout*>& GetDescriptorLayouts() const noexcept { return descriptorLayouts_; }
+    [[nodiscard]] PrimitiveTopology GetTopology() const noexcept { return topology_; }
+    [[nodiscard]] const RasterizerState& GetRasterizerState() const noexcept { return rasterizer_; }
+    [[nodiscard]] const DepthStencilState& GetDepthStencilState() const noexcept { return depthStencil_; }
+    [[nodiscard]] const BlendState& GetBlendState() const noexcept { return blend_; }
 
     virtual void Bind() const = 0;
     virtual void Unbind() const = 0;
-    virtual u32 GetHandle() const = 0;
+    [[nodiscard]] virtual u32 GetHandle() const noexcept = 0;
 
     virtual void BindVertexBuffer(u32 binding, Buffer* buffer, u64 offset = 0) const = 0;
     virtual void BindIndexBuffer(Buffer* buffer, IndexType indexType = IndexType::U32) const = 0;
     virtual void Draw(u32 vertexCount, u32 instanceCount = 1, u32 firstVertex = 0, u32 firstInstance = 0) const = 0;
-    virtual void DrawIndexed(u32 indexCount, u32 instanceCount = 1, u32 firstIndex = 0, i32 vertexOffset = 0, u32 firstInstance = 0) const = 0;
+    virtual void DrawIndexed(
+        u32 indexCount,
+        u32 instanceCount = 1,
+        u32 firstIndex = 0,
+        i32 vertexOffset = 0,
+        u32 firstInstance = 0
+    ) const = 0;
 
 protected:
     Pipeline(
@@ -76,13 +82,13 @@ protected:
         const BlendState& blend
     );
 
-    Shader* shader_;
-    VertexLayout* vertexLayout_;
+    Shader* shader_{nullptr};
+    VertexLayout* vertexLayout_{nullptr};
     std::vector<DescriptorSetLayout*> descriptorLayouts_;
-    PrimitiveTopology topology_;
-    RasterizerState rasterizer_;
-    DepthStencilState depthStencil_;
-    BlendState blend_;
+    PrimitiveTopology topology_{PrimitiveTopology::TriangleList};
+    RasterizerState rasterizer_{};
+    DepthStencilState depthStencil_{};
+    BlendState blend_{};
 };
 
 class PipelineImpl {
@@ -90,7 +96,7 @@ public:
     virtual ~PipelineImpl() = default;
     virtual void Bind() const = 0;
     virtual void Unbind() const = 0;
-    virtual u32 GetHandle() const = 0;
+    [[nodiscard]] virtual u32 GetHandle() const noexcept = 0;
 
 protected:
     PipelineImpl() = default;

@@ -16,18 +16,18 @@ public:
     RenderPass(std::string name, PassType type);
     ~RenderPass() = default;
 
-    const std::string& GetName() const { return name_; }
-    PassType GetType() const { return type_; }
+    [[nodiscard]] const std::string& GetName() const noexcept { return name_; }
+    [[nodiscard]] PassType GetType() const noexcept { return type_; }
 
-    Framebuffer* GetFramebuffer() const { return framebuffer_; }
-    const ClearValue& GetColorClear() const { return colorClear_; }
-    const ClearValue& GetDepthClear() const { return depthClear_; }
+    [[nodiscard]] Framebuffer* GetFramebuffer() const noexcept { return framebuffer_; }
+    [[nodiscard]] const ClearValue& GetColorClear() const noexcept { return colorClear_; }
+    [[nodiscard]] const ClearValue& GetDepthClear() const noexcept { return depthClear_; }
 
-    const std::vector<ResourceAccess>& GetInputs() const { return inputs_; }
-    const std::vector<ResourceAccess>& GetOutputs() const { return outputs_; }
+    [[nodiscard]] const std::vector<ResourceAccess>& GetInputs() const noexcept { return inputs_; }
+    [[nodiscard]] const std::vector<ResourceAccess>& GetOutputs() const noexcept { return outputs_; }
 
-    u32 GetExecutionOrder() const { return executionOrder_; }
-    bool HasExecuteCallback() const { return executeCallback_ != nullptr; }
+    [[nodiscard]] u32 GetExecutionOrder() const noexcept { return executionOrder_; }
+    [[nodiscard]] bool HasExecuteCallback() const noexcept { return executeCallback_ != nullptr; }
 
     void Execute(CommandBuffer& cmd) const;
 
@@ -39,7 +39,7 @@ private:
     ClearValue depthClear_{1.0f, 0};
     std::vector<ResourceAccess> inputs_;
     std::vector<ResourceAccess> outputs_;
-    PassExecuteCallback executeCallback_;
+    PassExecuteCallback executeCallback_{};
     u32 executionOrder_{0};
 
     friend class PassBuilder;
@@ -63,9 +63,9 @@ public:
     PassBuilder& Execute(PassExecuteCallback callback);
 
 private:
-    PassBuilder(RenderPass* pass);
+    explicit PassBuilder(RenderPass* pass);
 
-    RenderPass* pass_;
+    RenderPass* pass_{nullptr};
 
     friend class RenderGraph;
 };

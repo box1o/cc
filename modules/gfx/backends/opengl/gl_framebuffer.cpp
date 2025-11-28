@@ -8,7 +8,9 @@
 namespace cc::gfx {
 
 void OpenGLFramebufferImpl::AttachTexture(unsigned int attachmentPoint, Texture* texture) const {
-    if (texture == nullptr) return;
+    if (texture == nullptr) {
+        return;
+    }
 
     const u32 textureHandle = texture->GetHandle();
 
@@ -25,7 +27,9 @@ OpenGLFramebufferImpl::OpenGLFramebufferImpl(
     const std::unordered_map<u32, Texture*>& colorAttachments,
     Texture* depthAttachment
 )
-    : width_(width), height_(height) {
+    : handle_(0)
+    , width_(width)
+    , height_(height) {
 
     glCreateFramebuffers(1, &handle_);
     if (handle_ == 0) {
@@ -34,21 +38,27 @@ OpenGLFramebufferImpl::OpenGLFramebufferImpl(
     }
 
     std::vector<unsigned int> drawBuffers;
+    drawBuffers.reserve(colorAttachments.size());
+
     for (const auto& [index, texture] : colorAttachments) {
         const unsigned int attachmentPoint = GL_COLOR_ATTACHMENT0 + index;
         AttachTexture(attachmentPoint, texture);
         drawBuffers.push_back(attachmentPoint);
     }
 
-    if (! drawBuffers.empty()) {
-        glNamedFramebufferDrawBuffers(handle_, static_cast<int>(drawBuffers. size()), drawBuffers.data());
+    if (!drawBuffers.empty()) {
+        glNamedFramebufferDrawBuffers(
+            handle_,
+            static_cast<int>(drawBuffers.size()),
+            drawBuffers.data()
+        );
     } else {
         glNamedFramebufferDrawBuffer(handle_, GL_NONE);
         glNamedFramebufferReadBuffer(handle_, GL_NONE);
     }
 
     if (depthAttachment != nullptr) {
-        TextureFormat format = depthAttachment->GetFormat();
+        const TextureFormat format = depthAttachment->GetFormat();
         if (format == TextureFormat::Depth24Stencil8 || format == TextureFormat::Depth32FStencil8) {
             AttachTexture(GL_DEPTH_STENCIL_ATTACHMENT, depthAttachment);
         } else {
@@ -56,7 +66,7 @@ OpenGLFramebufferImpl::OpenGLFramebufferImpl(
         }
     }
 
-    if (! CheckComplete()) {
+    if (!CheckComplete()) {
         log::Error("Framebuffer is incomplete");
     }
 
@@ -85,14 +95,14 @@ bool OpenGLFramebufferImpl::CheckComplete() const {
     if (status != GL_FRAMEBUFFER_COMPLETE) {
         const char* errorMsg = "Unknown error";
         switch (status) {
-            case GL_FRAMEBUFFER_UNDEFINED: errorMsg = "Framebuffer undefined"; break;
-            case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT: errorMsg = "Incomplete attachment"; break;
+            case GL_FRAMEBUFFER_UNDEFINED:                  errorMsg = "Framebuffer undefined"; break;
+            case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:      errorMsg = "Incomplete attachment"; break;
             case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT: errorMsg = "Missing attachment"; break;
-            case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER: errorMsg = "Incomplete draw buffer"; break;
-            case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER: errorMsg = "Incomplete read buffer"; break;
-            case GL_FRAMEBUFFER_UNSUPPORTED: errorMsg = "Unsupported framebuffer configuration"; break;
-            case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE: errorMsg = "Incomplete multisample"; break;
-            case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS: errorMsg = "Incomplete layer targets"; break;
+            case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:     errorMsg = "Incomplete draw buffer"; break;
+            case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:     errorMsg = "Incomplete read buffer"; break;
+            case GL_FRAMEBUFFER_UNSUPPORTED:                errorMsg = "Unsupported framebuffer configuration"; break;
+            case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:     errorMsg = "Incomplete multisample"; break;
+            case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:   errorMsg = "Incomplete layer targets"; break;
         }
         log::Error("Framebuffer incomplete: {}", errorMsg);
         return false;
@@ -125,7 +135,7 @@ void OpenGLFramebuffer::Unbind() const {
 }
 
 Texture* OpenGLFramebuffer::GetColorTexture(u32 index) const {
-    auto it = colorTextures_.find(index);
+    const auto it = colorTextures_.find(index);
     if (it == colorTextures_.end()) {
         return nullptr;
     }
@@ -136,7 +146,7 @@ Texture* OpenGLFramebuffer::GetDepthTexture() const {
     return depthTexture_;
 }
 
-scope<Framebuffer> CreateOpenGLFramebuffer(
+[[nodiscard]] scope<Framebuffer> CreateOpenGLFramebuffer(
     Device*,
     u32 width,
     u32 height,
@@ -149,25 +159,32 @@ scope<Framebuffer> CreateOpenGLFramebuffer(
 
 class OpenGLDefaultFramebuffer final : public Framebuffer {
 public:
-    OpenGLDefaultFramebuffer(u32 width, u32 height) : width_(width), height_(height) {}
+    OpenGLDefaultFramebuffer(u32 width, u32 height) noexcept
+        : width_(width)
+        , height_(height) {}
+
     ~OpenGLDefaultFramebuffer() override = default;
 
-    u32 GetWidth() const override { return width_; }
-    u32 GetHeight() const override { return height_; }
-    u32 GetHandle() const override { return 0; }
+    [[nodiscard]] u32 GetWidth() const noexcept override { return width_; }
+    [[nodiscard]] u32 GetHeight() const noexcept override { return height_; }
+    [[nodiscard]] u32 GetHandle() const noexcept override { return 0; }
 
     void Bind() const override { glBindFramebuffer(GL_FRAMEBUFFER, 0); }
     void Unbind() const override { glBindFramebuffer(GL_FRAMEBUFFER, 0); }
 
-    Texture* GetColorTexture(u32) const override { return nullptr; }
-    Texture* GetDepthTexture() const override { return nullptr; }
+    [[nodiscard]] Texture* GetColorTexture(u32) const override { return nullptr; }
+    [[nodiscard]] Texture* GetDepthTexture() const override { return nullptr; }
 
 private:
-    u32 width_;
-    u32 height_;
+    u32 width_{0};
+    u32 height_{0};
 };
 
-scope<Framebuffer> CreateOpenGLDefaultFramebuffer(Device*, u32 width, u32 height) {
+[[nodiscard]] scope<Framebuffer> CreateOpenGLDefaultFramebuffer(
+    Device*,
+    u32 width,
+    u32 height
+) {
     return scope<Framebuffer>(new OpenGLDefaultFramebuffer(width, height));
 }
 

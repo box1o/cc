@@ -4,19 +4,20 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include <filesystem>
 
 namespace cc::gfx {
 
 namespace {
 
-shaderc_shader_kind ToShaderCKind(ShaderStage stage) {
+[[nodiscard]] shaderc_shader_kind ToShaderCKind(ShaderStage stage) noexcept {
     switch (stage) {
-        case ShaderStage::Vertex:                  return shaderc_vertex_shader;
-        case ShaderStage::Fragment:                return shaderc_fragment_shader;
-        case ShaderStage::Geometry:                return shaderc_geometry_shader;
-        case ShaderStage::Compute:                 return shaderc_compute_shader;
-        case ShaderStage::TessellationControl:     return shaderc_tess_control_shader;
-        case ShaderStage::TessellationEvaluation:  return shaderc_tess_evaluation_shader;
+        case ShaderStage::Vertex:                 return shaderc_vertex_shader;
+        case ShaderStage::Fragment:               return shaderc_fragment_shader;
+        case ShaderStage::Geometry:               return shaderc_geometry_shader;
+        case ShaderStage::Compute:                return shaderc_compute_shader;
+        case ShaderStage::TessellationControl:    return shaderc_tess_control_shader;
+        case ShaderStage::TessellationEvaluation: return shaderc_tess_evaluation_shader;
     }
     return shaderc_vertex_shader;
 }
@@ -34,7 +35,7 @@ ShaderCompiler::~ShaderCompiler() {
     }
 }
 
-scope<ShaderCompiler> ShaderCompiler::Create() {
+[[nodiscard]] scope<ShaderCompiler> ShaderCompiler::Create() {
     auto compiler = scope<ShaderCompiler>(new ShaderCompiler());
     compiler->Initialize();
     return compiler;
@@ -44,14 +45,14 @@ void ShaderCompiler::Initialize() {
     compiler_ = new shaderc::Compiler();
     options_ = new shaderc::CompileOptions();
 
-    if (! static_cast<shaderc::Compiler*>(compiler_)->IsValid()) {
+    if (!static_cast<shaderc::Compiler*>(compiler_)->IsValid()) {
         throw std::runtime_error("Failed to initialize shaderc compiler");
     }
 
     log::Info("Shader compiler initialized");
 }
 
-std::vector<u32> ShaderCompiler::CompileFile(
+[[nodiscard]] std::vector<u32> ShaderCompiler::CompileFile(
     const std::filesystem::path& filepath,
     ShaderStage stage,
     const ShaderCompileOptions& options
@@ -71,10 +72,10 @@ std::vector<u32> ShaderCompiler::CompileFile(
     buffer << file.rdbuf();
     std::string source = buffer.str();
 
-    return CompileSource(source, filepath. filename().string(), stage, options);
+    return CompileSource(source, filepath.filename().string(), stage, options);
 }
 
-std::vector<u32> ShaderCompiler::CompileSource(
+[[nodiscard]] std::vector<u32> ShaderCompiler::CompileSource(
     std::string_view source,
     std::string_view name,
     ShaderStage stage,
@@ -108,7 +109,7 @@ std::vector<u32> ShaderCompiler::CompileSource(
     );
 
     if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
-        log::Error("Shader compilation failed: {}", result. GetErrorMessage());
+        log::Error("Shader compilation failed: {}", result.GetErrorMessage());
         throw std::runtime_error("Shader compilation failed");
     }
 

@@ -6,7 +6,6 @@
 #include <cc/gfx/descriptor/descriptor_set.hpp>
 #include <cc/core/logger.hpp>
 #include <glad/glad.h>
-#include <stdexcept>
 
 namespace cc::gfx {
 
@@ -42,7 +41,7 @@ void OpenGLCommandBuffer::Begin() {
 }
 
 void OpenGLCommandBuffer::End() {
-    if (! isRecording_) {
+    if (!isRecording_) {
         log::Warn("CommandBuffer::End called while not recording");
         return;
     }
@@ -71,7 +70,7 @@ void OpenGLCommandBuffer::Reset() {
 }
 
 void OpenGLCommandBuffer::BeginRenderPass(const RenderPassBeginInfo& beginInfo) {
-    if (! isRecording_) {
+    if (!isRecording_) {
         log::Error("Cannot begin render pass: CommandBuffer not recording");
         return;
     }
@@ -96,10 +95,10 @@ void OpenGLCommandBuffer::BeginRenderPass(const RenderPassBeginInfo& beginInfo) 
 
     for (u32 i = 0; i < beginInfo.colorAttachmentCount; ++i) {
         const auto& attachment = beginInfo.colorAttachments[i];
-        if (attachment. loadOp == LoadOp::Clear) {
+        if (attachment.loadOp == LoadOp::Clear) {
             glClearColor(
                 attachment.clearValue.color.r,
-                attachment.clearValue. color.g,
+                attachment.clearValue.color.g,
                 attachment.clearValue.color.b,
                 attachment.clearValue.color.a
             );
@@ -114,7 +113,7 @@ void OpenGLCommandBuffer::BeginRenderPass(const RenderPassBeginInfo& beginInfo) 
             clearMask |= GL_DEPTH_BUFFER_BIT;
         }
         if (depth.stencilLoadOp == LoadOp::Clear) {
-            glClearStencil(static_cast<int>(depth. clearValue.depthStencil.stencil));
+            glClearStencil(static_cast<int>(depth.clearValue.depthStencil.stencil));
             clearMask |= GL_STENCIL_BUFFER_BIT;
         }
     }
@@ -126,7 +125,11 @@ void OpenGLCommandBuffer::BeginRenderPass(const RenderPassBeginInfo& beginInfo) 
     isInsideRenderPass_ = true;
 }
 
-void OpenGLCommandBuffer::BeginRenderPass(Framebuffer* framebuffer, const ClearValue& colorClear, const ClearValue& depthClear) {
+void OpenGLCommandBuffer::BeginRenderPass(
+    Framebuffer* framebuffer,
+    const ClearValue& colorClear,
+    const ClearValue& depthClear
+) {
     if (!isRecording_) {
         log::Error("Cannot begin render pass: CommandBuffer not recording");
         return;
@@ -143,13 +146,16 @@ void OpenGLCommandBuffer::BeginRenderPass(Framebuffer* framebuffer, const ClearV
         framebuffer->Bind();
 
         state_.viewport = Viewport{
-            0.0f, 0.0f,
+            0.0f,
+            0.0f,
             static_cast<f32>(framebuffer->GetWidth()),
             static_cast<f32>(framebuffer->GetHeight()),
-            0.0f, 1.0f
+            0.0f,
+            1.0f
         };
         state_.scissor = Scissor{
-            0, 0,
+            0,
+            0,
             framebuffer->GetWidth(),
             framebuffer->GetHeight()
         };
@@ -160,16 +166,21 @@ void OpenGLCommandBuffer::BeginRenderPass(Framebuffer* framebuffer, const ClearV
     SetViewport(state_.viewport);
     SetScissor(state_.scissor);
 
-    glClearColor(colorClear.color.r, colorClear.color.g, colorClear. color.b, colorClear.color. a);
+    glClearColor(
+        colorClear.color.r,
+        colorClear.color.g,
+        colorClear.color.b,
+        colorClear.color.a
+    );
     glClearDepth(static_cast<double>(depthClear.depthStencil.depth));
-    glClearStencil(static_cast<int>(depthClear. depthStencil.stencil));
+    glClearStencil(static_cast<int>(depthClear.depthStencil.stencil));
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
     isInsideRenderPass_ = true;
 }
 
 void OpenGLCommandBuffer::EndRenderPass() {
-    if (! isInsideRenderPass_) {
+    if (!isInsideRenderPass_) {
         log::Warn("EndRenderPass called while not inside render pass");
         return;
     }
@@ -182,7 +193,14 @@ void OpenGLCommandBuffer::EndRenderPass() {
     isInsideRenderPass_ = false;
 }
 
-void OpenGLCommandBuffer::SetViewport(f32 x, f32 y, f32 width, f32 height, f32 minDepth, f32 maxDepth) {
+void OpenGLCommandBuffer::SetViewport(
+    f32 x,
+    f32 y,
+    f32 width,
+    f32 height,
+    f32 minDepth,
+    f32 maxDepth
+) {
     state_.viewport = Viewport{x, y, width, height, minDepth, maxDepth};
 
     glViewport(
@@ -192,22 +210,37 @@ void OpenGLCommandBuffer::SetViewport(f32 x, f32 y, f32 width, f32 height, f32 m
         static_cast<GLsizei>(height)
     );
 
-    glDepthRange(static_cast<double>(minDepth), static_cast<double>(maxDepth));
+    glDepthRange(
+        static_cast<double>(minDepth),
+        static_cast<double>(maxDepth)
+    );
 }
 
 void OpenGLCommandBuffer::SetViewport(const Viewport& viewport) {
-    SetViewport(viewport. x, viewport.y, viewport.width, viewport.height, viewport.minDepth, viewport.maxDepth);
+    SetViewport(
+        viewport.x,
+        viewport.y,
+        viewport.width,
+        viewport.height,
+        viewport.minDepth,
+        viewport.maxDepth
+    );
 }
 
 void OpenGLCommandBuffer::SetScissor(i32 x, i32 y, u32 width, u32 height) {
     state_.scissor = Scissor{x, y, width, height};
 
     glEnable(GL_SCISSOR_TEST);
-    glScissor(x, y, static_cast<GLsizei>(width), static_cast<GLsizei>(height));
+    glScissor(
+        x,
+        y,
+        static_cast<GLsizei>(width),
+        static_cast<GLsizei>(height)
+    );
 }
 
 void OpenGLCommandBuffer::SetScissor(const Scissor& scissor) {
-    SetScissor(scissor. x, scissor. y, scissor. width, scissor. height);
+    SetScissor(scissor.x, scissor.y, scissor.width, scissor.height);
 }
 
 void OpenGLCommandBuffer::BindPipeline(Pipeline* pipeline) {
@@ -246,7 +279,7 @@ void OpenGLCommandBuffer::BindVertexBuffer(u32 binding, Buffer* buffer, u64 offs
         return;
     }
 
-    state_. vertexBuffers[binding] = buffer;
+    state_.vertexBuffers[binding] = buffer;
     state_.vertexOffsets[binding] = offset;
 
     if (state_.pipeline != nullptr) {
@@ -260,15 +293,20 @@ void OpenGLCommandBuffer::BindIndexBuffer(Buffer* buffer, IndexType indexType) {
         return;
     }
 
-    state_. indexBuffer = buffer;
+    state_.indexBuffer = buffer;
     state_.indexType = indexType;
 
     if (state_.pipeline != nullptr) {
-        state_. pipeline->BindIndexBuffer(buffer, indexType);
+        state_.pipeline->BindIndexBuffer(buffer, indexType);
     }
 }
 
-void OpenGLCommandBuffer::Draw(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) {
+void OpenGLCommandBuffer::Draw(
+    u32 vertexCount,
+    u32 instanceCount,
+    u32 firstVertex,
+    u32 firstInstance
+) {
     if (!isInsideRenderPass_) {
         log::Error("Draw called outside of render pass");
         return;
@@ -282,7 +320,13 @@ void OpenGLCommandBuffer::Draw(u32 vertexCount, u32 instanceCount, u32 firstVert
     state_.pipeline->Draw(vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
-void OpenGLCommandBuffer::DrawIndexed(u32 indexCount, u32 instanceCount, u32 firstIndex, i32 vertexOffset, u32 firstInstance) {
+void OpenGLCommandBuffer::DrawIndexed(
+    u32 indexCount,
+    u32 instanceCount,
+    u32 firstIndex,
+    i32 vertexOffset,
+    u32 firstInstance
+) {
     if (!isInsideRenderPass_) {
         log::Error("DrawIndexed called outside of render pass");
         return;
@@ -302,12 +346,12 @@ void OpenGLCommandBuffer::DrawIndexed(u32 indexCount, u32 instanceCount, u32 fir
 }
 
 void OpenGLCommandBuffer::DrawFullscreenQuad() {
-    if (! isInsideRenderPass_) {
+    if (!isInsideRenderPass_) {
         log::Error("DrawFullscreenQuad called outside of render pass");
         return;
     }
 
-    if (state_. pipeline == nullptr) {
+    if (state_.pipeline == nullptr) {
         log::Error("DrawFullscreenQuad called without bound pipeline");
         return;
     }
@@ -320,7 +364,13 @@ void OpenGLCommandBuffer::DrawFullscreenQuad() {
     }
 }
 
-void OpenGLCommandBuffer::CopyBuffer(Buffer* src, Buffer* dst, u64 size, u64 srcOffset, u64 dstOffset) {
+void OpenGLCommandBuffer::CopyBuffer(
+    Buffer* src,
+    Buffer* dst,
+    u64 size,
+    u64 srcOffset,
+    u64 dstOffset
+) {
     if (src == nullptr || dst == nullptr) {
         log::Error("CopyBuffer called with null buffer");
         return;
@@ -335,11 +385,16 @@ void OpenGLCommandBuffer::CopyBuffer(Buffer* src, Buffer* dst, u64 size, u64 src
     );
 }
 
-void OpenGLCommandBuffer::PushConstants(ShaderStage /*stage*/, u32 /*offset*/, u32 /*size*/, const void* /*data*/) {
+void OpenGLCommandBuffer::PushConstants(
+    ShaderStage /*stage*/,
+    u32 /*offset*/,
+    u32 /*size*/,
+    const void* /*data*/
+) {
     log::Warn("PushConstants not supported in OpenGL backend, use uniform buffers instead");
 }
 
-scope<CommandBuffer> CreateOpenGLCommandBuffer(Device* device) {
+[[nodiscard]] scope<CommandBuffer> CreateOpenGLCommandBuffer(Device* device) {
     return scope<CommandBuffer>(new OpenGLCommandBuffer(device));
 }
 

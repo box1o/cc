@@ -13,12 +13,12 @@ public:
     ~OpenGLSamplerImpl() override;
 
     void Bind(u32 slot) const override;
-    u32 GetHandle() const override { return handle_; }
+    [[nodiscard]] u32 GetHandle() const noexcept override { return handle_; }
 
 private:
     u32 handle_{0};
 };
 
-scope<Sampler> CreateOpenGLSampler(Device* device, const SamplerConfig& config);
+[[nodiscard]] scope<Sampler> CreateOpenGLSampler(Device* device, const SamplerConfig& config);
 
 } // namespace cc::gfx

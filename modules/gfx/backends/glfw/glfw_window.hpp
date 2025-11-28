@@ -10,27 +10,27 @@ class GLFWWindowImpl final : public Window {
 public:
     ~GLFWWindowImpl() override;
 
-    static scope<GLFWWindowImpl> Create(const WindowConfig& config);
+    [[nodiscard]] static scope<GLFWWindowImpl> Create(const WindowConfig& config);
 
-    bool ShouldClose() const override;
+    [[nodiscard]] bool ShouldClose() const override;
     void PollEvents() override;
     void SwapBuffers() override;
     void Close() override;
 
-    u32 GetWidth() const override;
-    u32 GetHeight() const override;
-    std::string_view GetTitle() const override;
+    [[nodiscard]] u32 GetWidth() const override;
+    [[nodiscard]] u32 GetHeight() const override;
+    [[nodiscard]] std::string_view GetTitle() const override;
 
-    bool IsVSync() const override;
-    bool IsFullscreen() const override;
-    bool IsResizable() const override;
+    [[nodiscard]] bool IsVSync() const override;
+    [[nodiscard]] bool IsFullscreen() const override;
+    [[nodiscard]] bool IsResizable() const override;
 
     void SetVSync(bool enabled) override;
     void SetTitle(std::string_view title) override;
     void SetSize(u32 width, u32 height) override;
 
-    void* GetNativeHandle() const override;
-    WindowBackend GetBackend() const override { return WindowBackend::GLFW; }
+    [[nodiscard]] void* GetNativeHandle() const override;
+    [[nodiscard]] WindowBackend GetBackend() const override { return WindowBackend::GLFW; }
 
     void SetResizeCallback(WindowResizeCallback callback) override;
 
@@ -51,8 +51,8 @@ private:
     bool vsync_{true};
     bool fullscreen_{false};
     bool decorated_{true};
-    
-    WindowResizeCallback resizeCallback_;
+
+    WindowResizeCallback resizeCallback_{};
 
     static inline u32 s_windowCount{0};
     static inline bool s_initialized{false};

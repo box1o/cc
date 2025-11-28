@@ -18,19 +18,19 @@ struct Attachment {
     TextureFormat format{TextureFormat::RGBA8};
     ref<Texture> texture{nullptr};
 
-    static auto CreateColor(TextureFormat fmt = TextureFormat::RGBA8) -> Attachment {
+    [[nodiscard]] static Attachment CreateColor(TextureFormat fmt = TextureFormat::RGBA8) {
         return {AttachmentType::Color, fmt, nullptr};
     }
 
-    static auto CreateDepth(TextureFormat fmt = TextureFormat::Depth24Stencil8) -> Attachment {
+    [[nodiscard]] static Attachment CreateDepth(TextureFormat fmt = TextureFormat::Depth24Stencil8) {
         return {AttachmentType::Depth, fmt, nullptr};
     }
 
-    static auto CreateDepthStencil() -> Attachment {
+    [[nodiscard]] static Attachment CreateDepthStencil() {
         return {AttachmentType::DepthStencil, TextureFormat::Depth24Stencil8, nullptr};
     }
 
-    static auto WithTexture(AttachmentType type, const ref<Texture>& tex) -> Attachment;
+    [[nodiscard]] static Attachment WithTexture(AttachmentType type, const ref<Texture>& tex);
 };
 
 } // namespace cc::gfx

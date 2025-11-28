@@ -28,7 +28,10 @@ OpenGLDescriptorSetLayout::~OpenGLDescriptorSetLayout() {
     log::Trace("OpenGL DescriptorSetLayout destroyed (handle={})", handle_);
 }
 
-scope<DescriptorSetLayout> CreateOpenGLDescriptorSetLayout(Device* /*device*/, const std::vector<DescriptorBinding>& bindings) {
+[[nodiscard]] scope<DescriptorSetLayout> CreateOpenGLDescriptorSetLayout(
+    Device* /*device*/,
+    const std::vector<DescriptorBinding>& bindings
+) {
     return scope<DescriptorSetLayout>(new OpenGLDescriptorSetLayout(bindings));
 }
 

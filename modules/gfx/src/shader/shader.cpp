@@ -6,36 +6,34 @@
 
 namespace cc::gfx {
 
-Shader::Builder Shader::Create(Device* device) {
+[[nodiscard]] Shader::Builder Shader::Create(Device* device) {
     Builder builder;
     builder.device_ = device;
     return builder;
 }
 
 Shader::Builder& Shader::Builder::AddStage(ShaderStage stage, const std::filesystem::path& filepath) {
-    StageInfo info;
-    info. stage = stage;
-    info. filepath = filepath;
-    info. isFile = true;
+    StageInfo info{};
+    info.stage = stage;
+    info.filepath = filepath;
+    info.isFile = true;
 
     stages_.push_back(std::move(info));
 
     log::Info("Added shader stage from file: {}", filepath.string());
-
     return *this;
 }
 
 Shader::Builder& Shader::Builder::AddStageFromSource(ShaderStage stage, std::string_view source, std::string_view name) {
-    StageInfo info;
+    StageInfo info{};
     info.stage = stage;
-    info.source = source;
-    info.name = name;
+    info.source.assign(source.begin(), source.end());
+    info.name.assign(name.begin(), name.end());
     info.isFile = false;
 
     stages_.push_back(std::move(info));
 
-    log::Info("Added shader stage from source: {}", name);
-
+    log::Info("Added shader stage from source: {}", info.name);
     return *this;
 }
 
@@ -44,7 +42,7 @@ Shader::Builder& Shader::Builder::EnableReflection(bool enable) {
     return *this;
 }
 
-scope<Shader> Shader::Builder::Build() {
+[[nodiscard]] scope<Shader> Shader::Builder::Build() {
     if (stages_.empty()) {
         log::Error("No shader stages added");
         throw std::runtime_error("No shader stages added");
@@ -55,17 +53,33 @@ scope<Shader> Shader::Builder::Build() {
         throw std::runtime_error("Device is null");
     }
 
-    std::vector<std::pair<ShaderStage, std::filesystem::path>> filePaths;
-    for (const auto& info : stages_) {
-        if (info.isFile) {
-            filePaths.emplace_back(info.stage, info.filepath);
+    switch (device_->GetBackend()) {
+        case Backend::OpenGL: {
+            std::vector<std::pair<ShaderStage, std::filesystem::path>> filePaths;
+            filePaths.reserve(stages_.size());
+
+            for (const auto& info : stages_) {
+                if (info.isFile) {
+                    filePaths.emplace_back(info.stage, info.filepath);
+                }
+            }
+
+            //NOTE: Source-based stages are not wired for GL yet
+            return CreateOpenGLShader(device_, filePaths);
         }
+        case Backend::Vulkan:
+            log::Critical("Vulkan shader backend not implemented");
+            throw std::runtime_error("Vulkan shader backend not implemented");
+        case Backend::Metal:
+            log::Critical("Metal shader backend not implemented");
+            throw std::runtime_error("Metal shader backend not implemented");
     }
 
-    return CreateOpenGLShader(device_, filePaths);
+    log::Critical("Unknown backend in Shader::Builder::Build");
+    throw std::runtime_error("Unknown backend");
 }
 
-Shader::Shader(scope<ShaderImpl> impl, std::unordered_map<ShaderStage, ShaderReflection> reflections)
+Shader::Shader(scope<ShaderImpl> impl, std::unordered_map<ShaderStage, ShaderReflection> reflections) noexcept
     : impl_(std::move(impl))
     , reflections_(std::move(reflections)) {}
 
@@ -79,12 +93,12 @@ void Shader::Unbind() const {
     impl_->Unbind();
 }
 
-u32 Shader::GetHandle() const {
+u32 Shader::GetHandle() const noexcept {
     return impl_->GetHandle();
 }
 
-const ShaderReflection* Shader::GetReflection(ShaderStage stage) const {
-    auto it = reflections_. find(stage);
+const ShaderReflection* Shader::GetReflection(ShaderStage stage) const noexcept {
+    const auto it = reflections_.find(stage);
     if (it == reflections_.end()) {
         return nullptr;
     }

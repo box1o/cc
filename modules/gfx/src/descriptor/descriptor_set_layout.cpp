@@ -1,27 +1,33 @@
 #include <cc/gfx/descriptor/descriptor_set_layout.hpp>
 #include <cc/gfx/device/device.hpp>
 #include <cc/core/logger.hpp>
+#include "backends/opengl/gl_descriptor_set_layout.hpp"
 #include <stdexcept>
 
 namespace cc::gfx {
 
-DescriptorSetLayout::Builder DescriptorSetLayout::Create(Device* device) {
+[[nodiscard]] DescriptorSetLayout::Builder DescriptorSetLayout::Create(Device* device) {
     Builder builder;
     builder.device_ = device;
     return builder;
 }
 
-DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::Binding(u32 binding, DescriptorType type, ShaderStage stages, u32 count) {
+DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::Binding(
+    u32 binding,
+    DescriptorType type,
+    ShaderStage stages,
+    u32 count
+) {
     DescriptorBinding db{};
     db.binding = binding;
     db.type = type;
-    db. stages = stages;
+    db.stages = stages;
     db.count = count;
     bindings_.push_back(db);
     return *this;
 }
 
-scope<DescriptorSetLayout> DescriptorSetLayout::Builder::Build() {
+[[nodiscard]] scope<DescriptorSetLayout> DescriptorSetLayout::Builder::Build() {
     if (device_ == nullptr) {
         log::Critical("Device is required to create DescriptorSetLayout");
         throw std::runtime_error("Device is null");
@@ -32,7 +38,19 @@ scope<DescriptorSetLayout> DescriptorSetLayout::Builder::Build() {
         throw std::runtime_error("DescriptorSetLayout requires at least one binding");
     }
 
-    return device_->CreateDescriptorSetLayout(bindings_);
+    switch (device_->GetBackend()) {
+        case Backend::OpenGL:
+            return CreateOpenGLDescriptorSetLayout(device_, bindings_);
+        case Backend::Vulkan:
+            log::Critical("Vulkan descriptor set layout backend not implemented");
+            throw std::runtime_error("Vulkan descriptor set layout backend not implemented");
+        case Backend::Metal:
+            log::Critical("Metal descriptor set layout backend not implemented");
+            throw std::runtime_error("Metal descriptor set layout backend not implemented");
+    }
+
+    log::Critical("Unknown backend in DescriptorSetLayout::Builder::Build");
+    throw std::runtime_error("Unknown backend");
 }
 
 DescriptorSetLayout::DescriptorSetLayout(std::vector<DescriptorBinding> bindings)

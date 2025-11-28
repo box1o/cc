@@ -19,7 +19,7 @@ RenderGraph::~RenderGraph() {
     log::Info("RenderGraph destroyed");
 }
 
-scope<RenderGraph> RenderGraph::Create(Device* device) {
+[[nodiscard]] scope<RenderGraph> RenderGraph::Create(Device* device) {
     if (device == nullptr) {
         log::Critical("Device is required to create RenderGraph");
         throw std::runtime_error("Device is null");
@@ -36,9 +36,9 @@ PassBuilder& RenderGraph::AddPass(std::string_view name, PassType type) {
 
     auto pass = std::make_unique<RenderPass>(std::string(name), type);
     auto builder = std::unique_ptr<PassBuilder>(new PassBuilder(pass.get()));
-    
+
     PassBuilder& builderRef = *builder;
-    
+
     passes_.push_back(std::move(pass));
     builders_.push_back(std::move(builder));
 
@@ -65,7 +65,7 @@ void RenderGraph::Compile() {
         return;
     }
 
-    log::Info("Compiling RenderGraph with {} passes", passes_. size());
+    log::Info("Compiling RenderGraph with {} passes", passes_.size());
 
     BuildDependencyGraph();
     TopologicalSort();
@@ -81,7 +81,7 @@ void RenderGraph::Compile() {
 }
 
 void RenderGraph::Execute() {
-    if (! compiled_) {
+    if (!compiled_) {
         log::Error("Cannot execute uncompiled RenderGraph");
         return;
     }
@@ -96,11 +96,10 @@ void RenderGraph::Execute() {
         const auto& pass = passes_[passIndex];
 
         Framebuffer* fb = pass->GetFramebuffer();
-        
-        //NOTE: Resolve backbuffer at execution time (handles resize)
+
         if (fb == nullptr) {
             for (const auto& output : pass->GetOutputs()) {
-                if (output. handle. IsBackbuffer()) {
+                if (output.handle.IsBackbuffer()) {
                     fb = GetBackbufferFramebuffer();
                     break;
                 }
@@ -125,7 +124,7 @@ void RenderGraph::Execute() {
 void RenderGraph::Reset() {
     passes_.clear();
     builders_.clear();
-    executionOrder_. clear();
+    executionOrder_.clear();
     compiled_ = false;
 
     log::Trace("RenderGraph reset");
@@ -135,7 +134,7 @@ const RenderPass* RenderGraph::GetPass(u32 index) const {
     if (index >= passes_.size()) {
         return nullptr;
     }
-    return passes_[index]. get();
+    return passes_[index].get();
 }
 
 const RenderPass* RenderGraph::GetPass(std::string_view name) const {
@@ -156,7 +155,7 @@ void RenderGraph::BuildDependencyGraph() {
 bool RenderGraph::HasDependency(const RenderPass* from, const RenderPass* to) const {
     for (const auto& input : to->GetInputs()) {
         for (const auto& output : from->GetOutputs()) {
-            if (ResourcesOverlap(input. handle, output.handle)) {
+            if (ResourcesOverlap(input.handle, output.handle)) {
                 return true;
             }
         }
@@ -178,13 +177,13 @@ bool RenderGraph::ResourcesOverlap(const ResourceHandle& a, const ResourceHandle
 
 void RenderGraph::TopologicalSort() {
     const u32 passCount = static_cast<u32>(passes_.size());
-    
+
     std::vector<u32> inDegree(passCount, 0);
     std::vector<std::vector<u32>> adjacency(passCount);
 
     for (u32 i = 0; i < passCount; ++i) {
         for (u32 j = 0; j < passCount; ++j) {
-            if (i != j && HasDependency(passes_[i].get(), passes_[j]. get())) {
+            if (i != j && HasDependency(passes_[i].get(), passes_[j].get())) {
                 adjacency[i].push_back(j);
                 inDegree[j]++;
             }
@@ -201,8 +200,8 @@ void RenderGraph::TopologicalSort() {
     executionOrder_.clear();
     executionOrder_.reserve(passCount);
 
-    while (!queue. empty()) {
-        u32 current = queue.front();
+    while (!queue.empty()) {
+        const u32 current = queue.front();
         queue.pop();
         executionOrder_.push_back(current);
 
@@ -213,7 +212,7 @@ void RenderGraph::TopologicalSort() {
         }
     }
 
-    if (executionOrder_. size() != passCount) {
+    if (executionOrder_.size() != passCount) {
         log::Error("Cycle detected in RenderGraph dependencies");
         throw std::runtime_error("Cycle detected in RenderGraph");
     }
@@ -225,15 +224,15 @@ void RenderGraph::TopologicalSort() {
 
 void RenderGraph::ValidateGraph() {
     for (const auto& pass : passes_) {
-        if (! pass->HasExecuteCallback()) {
+        if (!pass->HasExecuteCallback()) {
             log::Warn("Pass '{}' has no execute callback", pass->GetName());
         }
 
-        bool hasOutput = ! pass->GetOutputs().empty();
+        const bool hasOutput = !pass->GetOutputs().empty();
         bool hasBackbufferOutput = false;
-        
+
         for (const auto& output : pass->GetOutputs()) {
-            if (output.handle. IsBackbuffer()) {
+            if (output.handle.IsBackbuffer()) {
                 hasBackbufferOutput = true;
                 break;
             }

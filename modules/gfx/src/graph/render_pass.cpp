@@ -43,12 +43,12 @@ PassBuilder& PassBuilder::Read(Buffer* buffer, ResourceState state) {
 }
 
 PassBuilder& PassBuilder::Read(const ResourceHandle& handle, ResourceState state) {
-    if (! handle.IsValid() && !handle.IsBackbuffer()) {
+    if (!handle.IsValid() && !handle.IsBackbuffer()) {
         log::Warn("PassBuilder::Read called with invalid resource handle");
         return *this;
     }
 
-    ResourceAccess access;
+    ResourceAccess access{};
     access.handle = handle;
     access.state = state;
     pass_->inputs_.push_back(access);
@@ -65,7 +65,7 @@ PassBuilder& PassBuilder::Write(Buffer* buffer, ResourceState state) {
 }
 
 PassBuilder& PassBuilder::Write(const ResourceHandle& handle, ResourceState state) {
-    ResourceAccess access;
+    ResourceAccess access{};
     access.handle = handle;
     access.state = state;
     pass_->outputs_.push_back(access);

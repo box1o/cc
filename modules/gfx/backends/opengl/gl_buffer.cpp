@@ -6,7 +6,9 @@
 namespace cc::gfx {
 
 OpenGLBufferImpl::OpenGLBufferImpl(BufferType type, BufferUsage usage, u64 size, const void* data)
-    : type_(type), usage_(usage), size_(size) {
+    : type_(type)
+    , usage_(usage)
+    , size_(size) {
 
     glCreateBuffers(1, &handle_);
     if (handle_ == 0) {
@@ -14,7 +16,7 @@ OpenGLBufferImpl::OpenGLBufferImpl(BufferType type, BufferUsage usage, u64 size,
         return;
     }
 
-    glNamedBufferData(handle_, static_cast<long long>(size_), data, GetGLUsage());
+    glNamedBufferData(handle_, static_cast<GLsizeiptr>(size_), data, GetGLUsage());
 
     log::Trace("OpenGL buffer created (handle={}, size={})", handle_, size_);
 }
@@ -28,11 +30,19 @@ OpenGLBufferImpl::~OpenGLBufferImpl() {
 }
 
 void OpenGLBufferImpl::Update(const void* data, u64 size, u64 offset) {
-    if (handle_ == 0) return;
-    glNamedBufferSubData(handle_, static_cast<long long>(offset), static_cast<long long>(size), data);
+    if (handle_ == 0 || data == nullptr || size == 0) {
+        return;
+    }
+
+    glNamedBufferSubData(
+        handle_,
+        static_cast<GLintptr>(offset),
+        static_cast<GLsizeiptr>(size),
+        data
+    );
 }
 
-unsigned int OpenGLBufferImpl::GetGLTarget() const {
+unsigned int OpenGLBufferImpl::GetGLTarget() const noexcept {
     switch (type_) {
         case BufferType::Vertex:  return GL_ARRAY_BUFFER;
         case BufferType::Index:   return GL_ELEMENT_ARRAY_BUFFER;
@@ -43,7 +53,7 @@ unsigned int OpenGLBufferImpl::GetGLTarget() const {
     return GL_ARRAY_BUFFER;
 }
 
-unsigned int OpenGLBufferImpl::GetGLUsage() const {
+unsigned int OpenGLBufferImpl::GetGLUsage() const noexcept {
     switch (usage_) {
         case BufferUsage::Static:  return GL_STATIC_DRAW;
         case BufferUsage::Dynamic: return GL_DYNAMIC_DRAW;
@@ -52,7 +62,13 @@ unsigned int OpenGLBufferImpl::GetGLUsage() const {
     return GL_STATIC_DRAW;
 }
 
-scope<Buffer> CreateOpenGLBuffer(Device* /*device*/, BufferType type, u64 size, BufferUsage usage, const void* data) {
+[[nodiscard]] scope<Buffer> CreateOpenGLBuffer(
+    Device* /*device*/,
+    BufferType type,
+    u64 size,
+    BufferUsage usage,
+    const void* data
+) {
     auto impl = scope<BufferImpl>(new OpenGLBufferImpl(type, usage, size, data));
     return scope<Buffer>(new Buffer(type, usage, size, std::move(impl)));
 }

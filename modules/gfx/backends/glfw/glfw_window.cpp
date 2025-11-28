@@ -77,7 +77,7 @@ scope<GLFWWindowImpl> GLFWWindowImpl::Create(const WindowConfig& config) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, OPENGL_MAJOR_VERSION);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, OPENGL_MINOR_VERSION);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_RESIZABLE, config.resizable ?  GLFW_TRUE : GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, config.resizable ? GLFW_TRUE : GLFW_FALSE);
     glfwWindowHint(GLFW_DECORATED, config.decorated ? GLFW_TRUE : GLFW_FALSE);
 
 #ifdef __APPLE__
@@ -89,7 +89,7 @@ scope<GLFWWindowImpl> GLFWWindowImpl::Create(const WindowConfig& config) {
     GLFWwindow* glfwWindow = glfwCreateWindow(
         static_cast<int>(config.width),
         static_cast<int>(config.height),
-        config. title.c_str(),
+        config.title.c_str(),
         monitor,
         nullptr
     );
@@ -106,14 +106,14 @@ scope<GLFWWindowImpl> GLFWWindowImpl::Create(const WindowConfig& config) {
     window->title_ = config.title;
     window->width_ = config.width;
     window->height_ = config.height;
-    window->resizable_ = config. resizable;
+    window->resizable_ = config.resizable;
     window->vsync_ = config.vsync;
     window->fullscreen_ = config.fullscreen;
     window->decorated_ = config.decorated;
 
     ++s_windowCount;
 
-    glfwSetWindowUserPointer(glfwWindow, window. get());
+    glfwSetWindowUserPointer(glfwWindow, window.get());
     glfwSetFramebufferSizeCallback(glfwWindow, FramebufferSizeCallback);
     glfwSetWindowCloseCallback(glfwWindow, WindowCloseCallback);
 
@@ -172,7 +172,7 @@ void GLFWWindowImpl::SetVSync(bool enabled) {
 }
 
 void GLFWWindowImpl::SetTitle(std::string_view title) {
-    title_ = title;
+    title_ = std::string(title);
     glfwSetWindowTitle(handle_, title_.c_str());
 }
 

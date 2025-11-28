@@ -2,12 +2,12 @@
 #include <cc/gfx/device/device.hpp>
 #include <cc/gfx/texture/texture.hpp>
 #include <cc/core/logger.hpp>
+#include "backends/opengl/gl_framebuffer.hpp"
 #include <stdexcept>
 
 namespace cc::gfx {
 
-//NOTE: Forward declaration for OpenGL factory
-scope<Framebuffer> CreateOpenGLFramebuffer(
+[[nodiscard]] scope<Framebuffer> CreateOpenGLFramebuffer(
     Device* device,
     u32 width,
     u32 height,
@@ -15,10 +15,10 @@ scope<Framebuffer> CreateOpenGLFramebuffer(
     Texture* depthAttachment
 );
 
-Framebuffer::Builder Framebuffer::Create(Device* device, u32 width, u32 height) {
+[[nodiscard]] Framebuffer::Builder Framebuffer::Create(Device* device, u32 width, u32 height) noexcept {
     Builder builder;
     builder.device_ = device;
-    builder. width_ = width;
+    builder.width_ = width;
     builder.height_ = height;
     return builder;
 }
@@ -45,7 +45,7 @@ Framebuffer::Builder& Framebuffer::Builder::AttachDepthStencil(Texture* texture)
     return AttachDepth(texture);
 }
 
-scope<Framebuffer> Framebuffer::Builder::Build() {
+[[nodiscard]] scope<Framebuffer> Framebuffer::Builder::Build() {
     if (device_ == nullptr) {
         log::Critical("Device is required to create Framebuffer");
         throw std::runtime_error("Device is null");
@@ -64,10 +64,16 @@ scope<Framebuffer> Framebuffer::Builder::Build() {
     switch (device_->GetBackend()) {
         case Backend::OpenGL:
             return CreateOpenGLFramebuffer(device_, width_, height_, colorAttachments_, depthAttachment_);
-        default:
-            log::Critical("Unsupported backend for Framebuffer creation");
-            throw std::runtime_error("Unsupported backend");
+        case Backend::Vulkan:
+            log::Critical("Vulkan framebuffer backend not implemented");
+            throw std::runtime_error("Vulkan framebuffer backend not implemented");
+        case Backend::Metal:
+            log::Critical("Metal framebuffer backend not implemented");
+            throw std::runtime_error("Metal framebuffer backend not implemented");
     }
+
+    log::Critical("Unsupported backend for Framebuffer creation");
+    throw std::runtime_error("Unsupported backend");
 }
 
 } // namespace cc::gfx

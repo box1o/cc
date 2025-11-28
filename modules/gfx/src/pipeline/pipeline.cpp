@@ -4,11 +4,12 @@
 #include <cc/gfx/shader/shader.hpp>
 #include <cc/gfx/device/device.hpp>
 #include <cc/core/logger.hpp>
+#include "backends/opengl/gl_pipeline.hpp"
 #include <stdexcept>
 
 namespace cc::gfx {
 
-Pipeline::Builder Pipeline::Create(Device* device) {
+[[nodiscard]] Pipeline::Builder Pipeline::Create(Device* device) {
     Builder builder;
     builder.device_ = device;
     return builder;
@@ -50,7 +51,7 @@ Pipeline::Builder& Pipeline::Builder::SetPolygonMode(PolygonMode mode) {
 }
 
 Pipeline::Builder& Pipeline::Builder::SetLineWidth(f32 width) {
-    rasterizer_. lineWidth = width;
+    rasterizer_.lineWidth = width;
     return *this;
 }
 
@@ -65,7 +66,7 @@ Pipeline::Builder& Pipeline::Builder::SetDepthWrite(bool enable) {
 }
 
 Pipeline::Builder& Pipeline::Builder::SetDepthCompare(CompareOp op) {
-    depthStencil_. depthCompareOp = op;
+    depthStencil_.depthCompareOp = op;
     return *this;
 }
 
@@ -85,7 +86,7 @@ Pipeline::Builder& Pipeline::Builder::SetBlendSrcColor(BlendFactor factor) {
 }
 
 Pipeline::Builder& Pipeline::Builder::SetBlendDstColor(BlendFactor factor) {
-    blend_. dstColorFactor = factor;
+    blend_.dstColorFactor = factor;
     return *this;
 }
 
@@ -109,7 +110,7 @@ Pipeline::Builder& Pipeline::Builder::SetBlendAlphaOp(BlendOp op) {
     return *this;
 }
 
-scope<Pipeline> Pipeline::Builder::Build() {
+[[nodiscard]] scope<Pipeline> Pipeline::Builder::Build() {
     if (device_ == nullptr) {
         log::Critical("Device is required to create Pipeline");
         throw std::runtime_error("Device is null");
@@ -120,15 +121,28 @@ scope<Pipeline> Pipeline::Builder::Build() {
         throw std::runtime_error("Shader is null");
     }
 
-    return device_->CreatePipeline(
-        shader_,
-        vertexLayout_,
-        descriptorLayouts_,
-        topology_,
-        rasterizer_,
-        depthStencil_,
-        blend_
-    );
+    switch (device_->GetBackend()) {
+        case Backend::OpenGL:
+            return CreateOpenGLPipeline(
+                device_,
+                shader_,
+                vertexLayout_,
+                descriptorLayouts_,
+                topology_,
+                rasterizer_,
+                depthStencil_,
+                blend_
+            );
+        case Backend::Vulkan:
+            log::Critical("Vulkan pipeline backend not implemented");
+            throw std::runtime_error("Vulkan pipeline backend not implemented");
+        case Backend::Metal:
+            log::Critical("Metal pipeline backend not implemented");
+            throw std::runtime_error("Metal pipeline backend not implemented");
+    }
+
+    log::Critical("Unknown backend in Pipeline::Builder::Build");
+    throw std::runtime_error("Unknown backend");
 }
 
 Pipeline::Pipeline(

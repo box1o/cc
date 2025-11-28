@@ -9,19 +9,19 @@ namespace cc::gfx {
 
 namespace {
 
-UniformType SPIRTypeToUniformType(const spirv_cross::SPIRType& type) {
+[[nodiscard]] UniformType SPIRTypeToUniformType(const spirv_cross::SPIRType& type) noexcept {
     if (type.basetype == spirv_cross::SPIRType::Float) {
         if (type.vecsize == 1 && type.columns == 1) return UniformType::Float;
         if (type.vecsize == 2 && type.columns == 1) return UniformType::Vec2;
-        if (type.vecsize == 3 && type. columns == 1) return UniformType::Vec3;
+        if (type.vecsize == 3 && type.columns == 1) return UniformType::Vec3;
         if (type.vecsize == 4 && type.columns == 1) return UniformType::Vec4;
         if (type.vecsize == 3 && type.columns == 3) return UniformType::Mat3;
-        if (type. vecsize == 4 && type.columns == 4) return UniformType::Mat4;
+        if (type.vecsize == 4 && type.columns == 4) return UniformType::Mat4;
     } else if (type.basetype == spirv_cross::SPIRType::Int) {
-        if (type. vecsize == 1 && type.columns == 1) return UniformType::Int;
+        if (type.vecsize == 1 && type.columns == 1) return UniformType::Int;
         if (type.vecsize == 2 && type.columns == 1) return UniformType::IVec2;
         if (type.vecsize == 3 && type.columns == 1) return UniformType::IVec3;
-        if (type. vecsize == 4 && type.columns == 1) return UniformType::IVec4;
+        if (type.vecsize == 4 && type.columns == 1) return UniformType::IVec4;
     } else if (type.basetype == spirv_cross::SPIRType::Boolean) {
         return UniformType::Bool;
     } else if (type.basetype == spirv_cross::SPIRType::Image ||
@@ -34,7 +34,7 @@ UniformType SPIRTypeToUniformType(const spirv_cross::SPIRType& type) {
     return UniformType::None;
 }
 
-u32 GetUniformSize(UniformType type) {
+[[nodiscard]] u32 GetUniformSize(UniformType type) noexcept {
     switch (type) {
         case UniformType::Float:  return 4;
         case UniformType::Vec2:   return 8;
@@ -47,7 +47,7 @@ u32 GetUniformSize(UniformType type) {
         case UniformType::IVec3:  return 12;
         case UniformType::IVec4:  return 16;
         case UniformType::Bool:   return 4;
-        default: return 0;
+        default:                  return 0;
     }
 }
 
@@ -55,7 +55,7 @@ u32 GetUniformSize(UniformType type) {
 
 ShaderReflector::~ShaderReflector() = default;
 
-scope<ShaderReflector> ShaderReflector::Create() {
+[[nodiscard]] scope<ShaderReflector> ShaderReflector::Create() {
     return scope<ShaderReflector>(new ShaderReflector());
 }
 
@@ -79,11 +79,11 @@ ShaderReflection ShaderReflector::Reflect(const std::vector<u32>& spirv, ShaderS
             for (const auto& input : resources.stage_inputs) {
                 ShaderVertexAttribute attr{};
                 attr.location = compiler.get_decoration(input.id, spv::DecorationLocation);
-                attr.name = input.name. c_str();
+                attr.name = input.name.c_str();
 
                 const auto& type = compiler.get_type(input.type_id);
                 attr.type = SPIRTypeToUniformType(type);
-                attr.size = GetUniformSize(attr. type);
+                attr.size = GetUniformSize(attr.type);
 
                 attributes.push_back(attr);
             }
@@ -91,7 +91,6 @@ ShaderReflection ShaderReflector::Reflect(const std::vector<u32>& spirv, ShaderS
 
         for (const auto& ubo : resources.uniform_buffers) {
             std::vector<UniformBlockMember> members;
-
             const auto& type = compiler.get_type(ubo.type_id);
 
             for (u32 i = 0; i < type.member_types.size(); ++i) {
@@ -99,8 +98,8 @@ ShaderReflection ShaderReflector::Reflect(const std::vector<u32>& spirv, ShaderS
                 std::string memberName = compiler.get_member_name(ubo.type_id, i);
 
                 UniformBlockMember member{};
-                member.name = memberName. c_str();
-                member. type = SPIRTypeToUniformType(memberType);
+                member.name = memberName.c_str();
+                member.type = SPIRTypeToUniformType(memberType);
                 member.offset = compiler.type_struct_member_offset(type, i);
                 member.size = GetUniformSize(member.type);
 
@@ -109,18 +108,18 @@ ShaderReflection ShaderReflector::Reflect(const std::vector<u32>& spirv, ShaderS
 
             UniformBlock block{};
             block.name = ubo.name.c_str();
-            block.binding = compiler.get_decoration(ubo. id, spv::DecorationBinding);
+            block.binding = compiler.get_decoration(ubo.id, spv::DecorationBinding);
             block.size = static_cast<u32>(compiler.get_declared_struct_size(type));
-            block.members = members. data();
-            block.memberCount = static_cast<u32>(members. size());
+            block.members = members.data();
+            block.memberCount = static_cast<u32>(members.size());
 
-            uniformBlocks. push_back(block);
+            uniformBlocks.push_back(block);
         }
 
         for (const auto& sampler : resources.sampled_images) {
             SamplerBinding binding{};
-            binding.name = sampler.name. c_str();
-            binding. binding = compiler.get_decoration(sampler.id, spv::DecorationBinding);
+            binding.name = sampler.name.c_str();
+            binding.binding = compiler.get_decoration(sampler.id, spv::DecorationBinding);
 
             const auto& type = compiler.get_type(sampler.type_id);
             binding.type = SPIRTypeToUniformType(type);
@@ -128,14 +127,18 @@ ShaderReflection ShaderReflector::Reflect(const std::vector<u32>& spirv, ShaderS
             samplers.push_back(binding);
         }
 
-        const char* stageName = stage == ShaderStage::Vertex   ? "Vertex" :
-                                stage == ShaderStage::Fragment ? "Fragment" :
-                                stage == ShaderStage::Geometry ? "Geometry" :
-                                stage == ShaderStage::Compute  ? "Compute" : "Unknown";
+        const char* stageName =
+            (stage == ShaderStage::Vertex)                 ? "Vertex"   :
+            (stage == ShaderStage::Fragment)               ? "Fragment" :
+            (stage == ShaderStage::Geometry)               ? "Geometry" :
+            (stage == ShaderStage::Compute)                ? "Compute"  :
+            (stage == ShaderStage::TessellationControl)    ? "TessCtrl" :
+            (stage == ShaderStage::TessellationEvaluation) ? "TessEval" :
+                                                             "Unknown";
 
         log::Info("Shader reflection ({})", stageName);
         log::Info("  Attributes: {}", attributes.size());
-        log::Info("  Uniform Blocks: {}", uniformBlocks. size());
+        log::Info("  Uniform Blocks: {}", uniformBlocks.size());
         log::Info("  Samplers: {}", samplers.size());
 
     } catch (const std::exception& e) {
@@ -143,12 +146,12 @@ ShaderReflection ShaderReflector::Reflect(const std::vector<u32>& spirv, ShaderS
         throw std::runtime_error("SPIR-V reflection failed");
     }
 
-    reflection.attributes = attributes. data();
-    reflection.attributeCount = static_cast<u32>(attributes.size());
-    reflection.uniformBlocks = uniformBlocks.data();
-    reflection. uniformBlockCount = static_cast<u32>(uniformBlocks.size());
-    reflection.samplers = samplers.data();
-    reflection.samplerCount = static_cast<u32>(samplers.size());
+    reflection.attributes         = attributes.data();
+    reflection.attributeCount     = static_cast<u32>(attributes.size());
+    reflection.uniformBlocks      = uniformBlocks.data();
+    reflection.uniformBlockCount  = static_cast<u32>(uniformBlocks.size());
+    reflection.samplers           = samplers.data();
+    reflection.samplerCount       = static_cast<u32>(samplers.size());
 
     return reflection;
 }

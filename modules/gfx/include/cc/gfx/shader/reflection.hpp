@@ -9,9 +9,9 @@ class ShaderReflector {
 public:
     ~ShaderReflector();
 
-    static scope<ShaderReflector> Create();
+    [[nodiscard]] static scope<ShaderReflector> Create();
 
-    ShaderReflection Reflect(const std::vector<u32>& spirv, ShaderStage stage);
+    [[nodiscard]] ShaderReflection Reflect(const std::vector<u32>& spirv, ShaderStage stage);
 
 private:
     ShaderReflector() = default;

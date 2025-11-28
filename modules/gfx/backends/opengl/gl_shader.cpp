@@ -10,7 +10,7 @@ namespace cc::gfx {
 
 std::string OpenGLShaderImpl::LoadShaderSource(const std::filesystem::path& filepath) {
     std::ifstream file(filepath);
-    if (!file. is_open()) {
+    if (!file.is_open()) {
         log::Error("Failed to open shader file: {}", filepath.string());
         throw std::runtime_error("Failed to open shader file");
     }
@@ -20,26 +20,26 @@ std::string OpenGLShaderImpl::LoadShaderSource(const std::filesystem::path& file
     return buffer.str();
 }
 
-unsigned int OpenGLShaderImpl::GetGLShaderStage(ShaderStage stage) {
+unsigned int OpenGLShaderImpl::GetGLShaderStage(ShaderStage stage) noexcept {
     switch (stage) {
-        case ShaderStage::Vertex:                  return GL_VERTEX_SHADER;
-        case ShaderStage::Fragment:                return GL_FRAGMENT_SHADER;
-        case ShaderStage::Geometry:                return GL_GEOMETRY_SHADER;
-        case ShaderStage::Compute:                 return GL_COMPUTE_SHADER;
-        case ShaderStage::TessellationControl:     return GL_TESS_CONTROL_SHADER;
-        case ShaderStage::TessellationEvaluation:  return GL_TESS_EVALUATION_SHADER;
+        case ShaderStage::Vertex:                 return GL_VERTEX_SHADER;
+        case ShaderStage::Fragment:               return GL_FRAGMENT_SHADER;
+        case ShaderStage::Geometry:               return GL_GEOMETRY_SHADER;
+        case ShaderStage::Compute:                return GL_COMPUTE_SHADER;
+        case ShaderStage::TessellationControl:    return GL_TESS_CONTROL_SHADER;
+        case ShaderStage::TessellationEvaluation: return GL_TESS_EVALUATION_SHADER;
     }
     return GL_VERTEX_SHADER;
 }
 
-const char* OpenGLShaderImpl::GetShaderStageName(ShaderStage stage) {
+const char* OpenGLShaderImpl::GetShaderStageName(ShaderStage stage) noexcept {
     switch (stage) {
-        case ShaderStage::Vertex:                  return "Vertex";
-        case ShaderStage::Fragment:                return "Fragment";
-        case ShaderStage::Geometry:                return "Geometry";
-        case ShaderStage::Compute:                 return "Compute";
-        case ShaderStage::TessellationControl:     return "TessControl";
-        case ShaderStage::TessellationEvaluation:  return "TessEvaluation";
+        case ShaderStage::Vertex:                 return "Vertex";
+        case ShaderStage::Fragment:               return "Fragment";
+        case ShaderStage::Geometry:               return "Geometry";
+        case ShaderStage::Compute:                return "Compute";
+        case ShaderStage::TessellationControl:    return "TessControl";
+        case ShaderStage::TessellationEvaluation: return "TessEvaluation";
     }
     return "Unknown";
 }
@@ -119,10 +119,11 @@ void OpenGLShaderImpl::DeleteProgram(u32 program) {
 
 OpenGLShaderImpl::OpenGLShaderImpl(const std::vector<std::pair<ShaderStage, std::string>>& stages) {
     std::vector<u32> shaderIDs;
+    shaderIDs.reserve(stages.size());
 
     try {
         for (const auto& [stage, source] : stages) {
-            u32 shaderID = CompileShader(source, stage);
+            const u32 shaderID = CompileShader(source, stage);
             shaderIDs.push_back(shaderID);
         }
 
@@ -178,9 +179,13 @@ void OpenGLShaderImpl::SetSamplerBinding(const char* name, u32 binding) const {
     log::Trace("Set sampler '{}' to binding {}", name, binding);
 }
 
-scope<Shader> CreateOpenGLShader(Device* /*device*/, const std::vector<std::pair<ShaderStage, std::filesystem::path>>& stages) {
+[[nodiscard]] scope<Shader> CreateOpenGLShader(
+    Device* /*device*/,
+    const std::vector<std::pair<ShaderStage, std::filesystem::path>>& stages
+) {
     std::vector<std::pair<ShaderStage, std::string>> stageSources;
-    
+    stageSources.reserve(stages.size());
+
     for (const auto& [stage, filepath] : stages) {
         std::string source = OpenGLShaderImpl::LoadShaderSource(filepath);
         stageSources.emplace_back(stage, std::move(source));
@@ -190,7 +195,10 @@ scope<Shader> CreateOpenGLShader(Device* /*device*/, const std::vector<std::pair
     return scope<Shader>(new Shader(std::move(impl), {}));
 }
 
-scope<Shader> CreateOpenGLShaderFromSource(Device* /*device*/, const std::vector<std::pair<ShaderStage, std::string>>& stages) {
+[[nodiscard]] scope<Shader> CreateOpenGLShaderFromSource(
+    Device* /*device*/,
+    const std::vector<std::pair<ShaderStage, std::string>>& stages
+) {
     auto impl = scope<ShaderImpl>(new OpenGLShaderImpl(stages));
     return scope<Shader>(new Shader(std::move(impl), {}));
 }

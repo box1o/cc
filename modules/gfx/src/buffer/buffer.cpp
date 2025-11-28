@@ -1,11 +1,18 @@
 #include <cc/gfx/buffer/buffer.hpp>
 #include <cc/gfx/device/device.hpp>
 #include <cc/core/logger.hpp>
+#include "backends/opengl/gl_buffer.hpp"
 #include <stdexcept>
 
 namespace cc::gfx {
 
-scope<Buffer> Buffer::Create(Device* device, BufferType type, u64 size, BufferUsage usage, const void* data) {
+[[nodiscard]] scope<Buffer> Buffer::Create(
+    Device* device,
+    BufferType type,
+    u64 size,
+    BufferUsage usage,
+    const void* data
+) {
     if (device == nullptr) {
         log::Critical("Device is required to create buffer");
         throw std::runtime_error("Device is null");
@@ -16,10 +23,22 @@ scope<Buffer> Buffer::Create(Device* device, BufferType type, u64 size, BufferUs
         throw std::runtime_error("Invalid buffer size");
     }
 
-    return device->CreateBuffer(type, size, usage, data);
+    switch (device->GetBackend()) {
+        case Backend::OpenGL:
+            return CreateOpenGLBuffer(device, type, size, usage, data);
+        case Backend::Vulkan:
+            log::Critical("Vulkan buffer backend not implemented");
+            throw std::runtime_error("Vulkan buffer backend not implemented");
+        case Backend::Metal:
+            log::Critical("Metal buffer backend not implemented");
+            throw std::runtime_error("Metal buffer backend not implemented");
+    }
+
+    log::Critical("Unknown backend in Buffer::Create");
+    throw std::runtime_error("Unknown backend");
 }
 
-Buffer::Buffer(BufferType type, BufferUsage usage, u64 size, scope<BufferImpl> impl)
+Buffer::Buffer(BufferType type, BufferUsage usage, u64 size, scope<BufferImpl> impl) noexcept
     : type_(type)
     , usage_(usage)
     , size_(size)
@@ -28,14 +47,20 @@ Buffer::Buffer(BufferType type, BufferUsage usage, u64 size, scope<BufferImpl> i
 Buffer::~Buffer() = default;
 
 void Buffer::Update(const void* data, u64 size, u64 offset) {
-    if (offset + size > size_) {
+    if (data == nullptr || size == 0) {
+        return;
+    }
+
+    const u64 end = offset + size;
+    if (end > size_) {
         log::Error("Buffer update out of bounds: offset={}, size={}, bufferSize={}", offset, size, size_);
         return;
     }
+
     impl_->Update(data, size, offset);
 }
 
-u32 Buffer::GetHandle() const {
+u32 Buffer::GetHandle() const noexcept {
     return impl_->GetHandle();
 }
 

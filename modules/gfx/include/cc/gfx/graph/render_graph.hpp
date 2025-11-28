@@ -13,35 +13,35 @@ class RenderGraph {
 public:
     ~RenderGraph();
 
-    static scope<RenderGraph> Create(Device* device);
+    [[nodiscard]] static scope<RenderGraph> Create(Device* device);
 
     PassBuilder& AddPass(std::string_view name, PassType type = PassType::Graphics);
 
     void SetSwapchain(Swapchain* swapchain);
-    Swapchain* GetSwapchain() const { return swapchain_; }
+    [[nodiscard]] Swapchain* GetSwapchain() const noexcept { return swapchain_; }
 
     void Compile();
     void Execute();
     void Reset();
 
-    bool IsCompiled() const { return compiled_; }
-    u32 GetPassCount() const { return static_cast<u32>(passes_.size()); }
+    [[nodiscard]] bool IsCompiled() const noexcept { return compiled_; }
+    [[nodiscard]] u32 GetPassCount() const noexcept { return static_cast<u32>(passes_.size()); }
 
-    const RenderPass* GetPass(u32 index) const;
-    const RenderPass* GetPass(std::string_view name) const;
+    [[nodiscard]] const RenderPass* GetPass(u32 index) const;
+    [[nodiscard]] const RenderPass* GetPass(std::string_view name) const;
 
 private:
-    RenderGraph(Device* device);
+    explicit RenderGraph(Device* device);
 
     void BuildDependencyGraph();
     void TopologicalSort();
     void ValidateGraph();
-    
-    Framebuffer* GetBackbufferFramebuffer() const;
-    bool HasDependency(const RenderPass* from, const RenderPass* to) const;
-    bool ResourcesOverlap(const ResourceHandle& a, const ResourceHandle& b) const;
 
-    Device* device_;
+    [[nodiscard]] Framebuffer* GetBackbufferFramebuffer() const;
+    [[nodiscard]] bool HasDependency(const RenderPass* from, const RenderPass* to) const;
+    [[nodiscard]] bool ResourcesOverlap(const ResourceHandle& a, const ResourceHandle& b) const;
+
+    Device* device_{nullptr};
     scope<CommandBuffer> commandBuffer_;
     Swapchain* swapchain_{nullptr};
 

@@ -12,7 +12,7 @@ public:
     public:
         Builder& Binding(u32 binding, u32 stride, VertexInputRate inputRate = VertexInputRate::PerVertex);
         Builder& Attribute(u32 location, u32 binding, VertexFormat format, u32 offset);
-        scope<VertexLayout> Build();
+        [[nodiscard]] scope<VertexLayout> Build();
 
     private:
         std::vector<VertexBinding> bindings_;
@@ -21,19 +21,19 @@ public:
 
     ~VertexLayout() = default;
 
-    static Builder Create();
+    [[nodiscard]] static Builder Create();
 
-    const std::vector<VertexBinding>& GetBindings() const { return bindings_; }
-    const std::vector<VertexAttribute>& GetAttributes() const { return attributes_; }
+    [[nodiscard]] const std::vector<VertexBinding>& GetBindings() const noexcept { return bindings_; }
+    [[nodiscard]] const std::vector<VertexAttribute>& GetAttributes() const noexcept { return attributes_; }
 
-    u32 GetBindingCount() const { return static_cast<u32>(bindings_.size()); }
-    u32 GetAttributeCount() const { return static_cast<u32>(attributes_. size()); }
+    [[nodiscard]] u32 GetBindingCount() const noexcept { return static_cast<u32>(bindings_.size()); }
+    [[nodiscard]] u32 GetAttributeCount() const noexcept { return static_cast<u32>(attributes_.size()); }
 
-    const VertexBinding* GetBinding(u32 binding) const;
-    u32 GetStride(u32 binding) const;
+    [[nodiscard]] const VertexBinding* GetBinding(u32 binding) const;
+    [[nodiscard]] u32 GetStride(u32 binding) const;
 
-    static u32 GetFormatSize(VertexFormat format);
-    static u32 GetFormatComponentCount(VertexFormat format);
+    [[nodiscard]] static u32 GetFormatSize(VertexFormat format);
+    [[nodiscard]] static u32 GetFormatComponentCount(VertexFormat format);
 
 private:
     VertexLayout(std::vector<VertexBinding> bindings, std::vector<VertexAttribute> attributes);

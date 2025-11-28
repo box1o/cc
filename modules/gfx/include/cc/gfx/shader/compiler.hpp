@@ -2,7 +2,6 @@
 #include <cc/core/core.hpp>
 #include <cc/gfx/types.hpp>
 #include <filesystem>
-#include <string>
 #include <string_view>
 #include <vector>
 
@@ -19,10 +18,20 @@ class ShaderCompiler {
 public:
     ~ShaderCompiler();
 
-    static scope<ShaderCompiler> Create();
+    [[nodiscard]] static scope<ShaderCompiler> Create();
 
-    std::vector<u32> CompileFile(const std::filesystem::path& filepath, ShaderStage stage, const ShaderCompileOptions& options = {});
-    std::vector<u32> CompileSource(std::string_view source, std::string_view name, ShaderStage stage, const ShaderCompileOptions& options = {});
+    [[nodiscard]] std::vector<u32> CompileFile(
+        const std::filesystem::path& filepath,
+        ShaderStage stage,
+        const ShaderCompileOptions& options = {}
+    );
+
+    [[nodiscard]] std::vector<u32> CompileSource(
+        std::string_view source,
+        std::string_view name,
+        ShaderStage stage,
+        const ShaderCompileOptions& options = {}
+    );
 
 private:
     ShaderCompiler() = default;

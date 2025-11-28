@@ -8,7 +8,7 @@ namespace cc::gfx {
 
 namespace {
 
-unsigned int GetGLFilter(TextureFilter filter) {
+[[nodiscard]] unsigned int GetGLFilter(TextureFilter filter) noexcept {
     switch (filter) {
         case TextureFilter::Nearest: return GL_NEAREST;
         case TextureFilter::Linear:  return GL_LINEAR;
@@ -16,7 +16,7 @@ unsigned int GetGLFilter(TextureFilter filter) {
     return GL_LINEAR;
 }
 
-unsigned int GetGLWrap(TextureWrap wrap) {
+[[nodiscard]] unsigned int GetGLWrap(TextureWrap wrap) noexcept {
     switch (wrap) {
         case TextureWrap::Repeat:        return GL_REPEAT;
         case TextureWrap::MirrorRepeat:  return GL_MIRRORED_REPEAT;
@@ -28,8 +28,7 @@ unsigned int GetGLWrap(TextureWrap wrap) {
 
 } // anonymous namespace
 
-//NOTE: Texture2D Implementation
-unsigned int OpenGLTexture2DImpl::GetGLInternalFormat() const {
+unsigned int OpenGLTexture2DImpl::GetGLInternalFormat() const noexcept {
     switch (format_) {
         case TextureFormat::R8:              return GL_R8;
         case TextureFormat::RG8:             return GL_RG8;
@@ -54,7 +53,7 @@ unsigned int OpenGLTexture2DImpl::GetGLInternalFormat() const {
     return GL_RGBA8;
 }
 
-unsigned int OpenGLTexture2DImpl::GetGLFormat() const {
+unsigned int OpenGLTexture2DImpl::GetGLFormat() const noexcept {
     switch (format_) {
         case TextureFormat::R8:
         case TextureFormat::R16F:
@@ -90,7 +89,7 @@ unsigned int OpenGLTexture2DImpl::GetGLFormat() const {
     return GL_RGBA;
 }
 
-unsigned int OpenGLTexture2DImpl::GetGLType() const {
+unsigned int OpenGLTexture2DImpl::GetGLType() const noexcept {
     switch (format_) {
         case TextureFormat::R16F:
         case TextureFormat::RG16F:
@@ -117,7 +116,9 @@ unsigned int OpenGLTexture2DImpl::GetGLType() const {
 }
 
 OpenGLTexture2DImpl::OpenGLTexture2DImpl(u32 width, u32 height, TextureFormat format, const void* data)
-: width_(width), height_(height), format_(format) {
+    : width_(width)
+    , height_(height)
+    , format_(format) {
 
     glCreateTextures(GL_TEXTURE_2D, 1, &handle_);
     if (handle_ == 0) {
@@ -137,7 +138,8 @@ OpenGLTexture2DImpl::OpenGLTexture2DImpl(u32 width, u32 height, TextureFormat fo
         glTextureSubImage2D(
             handle_,
             0,
-            0, 0,
+            0,
+            0,
             static_cast<int>(width_),
             static_cast<int>(height_),
             GetGLFormat(),
@@ -163,15 +165,14 @@ OpenGLTexture2DImpl::~OpenGLTexture2DImpl() {
 }
 
 void OpenGLTexture2DImpl::Bind(u32 slot) const {
-    glBindTextureUnit(slot, handle_);
+    glBindTextureUnit(static_cast<unsigned int>(slot), handle_);
 }
 
 void OpenGLTexture2DImpl::Unbind() const {
     glBindTextureUnit(0, 0);
 }
 
-//NOTE: TextureCube Implementation
-unsigned int OpenGLTextureCubeImpl::GetGLInternalFormat() const {
+unsigned int OpenGLTextureCubeImpl::GetGLInternalFormat() const noexcept {
     switch (format_) {
         case TextureFormat::R8:       return GL_R8;
         case TextureFormat::RG8:      return GL_RG8;
@@ -181,11 +182,11 @@ unsigned int OpenGLTextureCubeImpl::GetGLInternalFormat() const {
         case TextureFormat::RGBA16F:  return GL_RGBA16F;
         case TextureFormat::RGB32F:   return GL_RGB32F;
         case TextureFormat::RGBA32F:  return GL_RGBA32F;
-        default: return GL_RGBA8;
+        default:                      return GL_RGBA8;
     }
 }
 
-unsigned int OpenGLTextureCubeImpl::GetGLFormat() const {
+unsigned int OpenGLTextureCubeImpl::GetGLFormat() const noexcept {
     switch (format_) {
         case TextureFormat::R8:    return GL_RED;
         case TextureFormat::RG8:   return GL_RG;
@@ -197,11 +198,12 @@ unsigned int OpenGLTextureCubeImpl::GetGLFormat() const {
         case TextureFormat::RGBA16F:
         case TextureFormat::RGBA32F:
             return GL_RGBA;
-        default: return GL_RGB;
+        default:
+            return GL_RGB;
     }
 }
 
-unsigned int OpenGLTextureCubeImpl::GetGLType() const {
+unsigned int OpenGLTextureCubeImpl::GetGLType() const noexcept {
     switch (format_) {
         case TextureFormat::RGB16F:
         case TextureFormat::RGBA16F:
@@ -218,7 +220,9 @@ OpenGLTextureCubeImpl::OpenGLTextureCubeImpl(
     u32 size,
     TextureFormat format,
     const std::array<const void*, CUBEMAP_FACE_COUNT>& faceData
-) : size_(size), format_(format) {
+)
+    : size_(size)
+    , format_(format) {
 
     glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &handle_);
     if (handle_ == 0) {
@@ -239,7 +243,8 @@ OpenGLTextureCubeImpl::OpenGLTextureCubeImpl(
             glTextureSubImage3D(
                 handle_,
                 0,
-                0, 0,
+                0,
+                0,
                 static_cast<int>(i),
                 static_cast<int>(size_),
                 static_cast<int>(size_),
@@ -269,15 +274,14 @@ OpenGLTextureCubeImpl::~OpenGLTextureCubeImpl() {
 }
 
 void OpenGLTextureCubeImpl::Bind(u32 slot) const {
-    glBindTextureUnit(slot, handle_);
+    glBindTextureUnit(static_cast<unsigned int>(slot), handle_);
 }
 
 void OpenGLTextureCubeImpl::Unbind() const {
     glBindTextureUnit(0, 0);
 }
 
-//NOTE: Factory Functions
-scope<Texture2D> CreateOpenGLTexture2D(
+[[nodiscard]] scope<Texture2D> CreateOpenGLTexture2D(
     Device* /*device*/,
     u32 width,
     u32 height,
@@ -288,10 +292,15 @@ scope<Texture2D> CreateOpenGLTexture2D(
     return scope<Texture2D>(new Texture2D(width, height, format, std::move(impl)));
 }
 
-scope<Texture2D> CreateOpenGLTexture2DFromFile(Device* device, const std::filesystem::path& filepath) {
+[[nodiscard]] scope<Texture2D> CreateOpenGLTexture2DFromFile(
+    Device* device,
+    const std::filesystem::path& filepath
+) {
     stbi_set_flip_vertically_on_load(1);
 
-    int width = 0, height = 0, channels = 0;
+    int width = 0;
+    int height = 0;
+    int channels = 0;
     unsigned char* pixels = stbi_load(filepath.string().c_str(), &width, &height, &channels, STBI_rgb_alpha);
 
     if (pixels == nullptr) {
@@ -312,7 +321,7 @@ scope<Texture2D> CreateOpenGLTexture2DFromFile(Device* device, const std::filesy
     return texture;
 }
 
-scope<TextureCube> CreateOpenGLTextureCube(
+[[nodiscard]] scope<TextureCube> CreateOpenGLTextureCube(
     Device* /*device*/,
     u32 size,
     TextureFormat format
@@ -322,7 +331,7 @@ scope<TextureCube> CreateOpenGLTextureCube(
     return scope<TextureCube>(new TextureCube(size, format, std::move(impl)));
 }
 
-scope<TextureCube> CreateOpenGLTextureCubeFromFiles(
+[[nodiscard]] scope<TextureCube> CreateOpenGLTextureCubeFromFiles(
     Device* device,
     const std::array<std::filesystem::path, CUBEMAP_FACE_COUNT>& faces
 ) {
@@ -342,7 +351,9 @@ scope<TextureCube> CreateOpenGLTextureCubeFromFiles(
 
     for (u32 i = 0; i < CUBEMAP_FACE_COUNT; ++i) {
         if (!faces[i].empty()) {
-            int width = 0, height = 0, channels = 0;
+            int width = 0;
+            int height = 0;
+            int channels = 0;
             unsigned char* pixels = stbi_load(
                 faces[i].string().c_str(),
                 &width,
@@ -363,7 +374,6 @@ scope<TextureCube> CreateOpenGLTextureCubeFromFiles(
         }
     }
 
-    //NOTE: pass faceData to actually upload pixels
     auto impl = scope<TextureImpl>(new OpenGLTextureCubeImpl(size, TextureFormat::RGBA8, faceData));
     return scope<TextureCube>(new TextureCube(size, TextureFormat::RGBA8, std::move(impl)));
 }

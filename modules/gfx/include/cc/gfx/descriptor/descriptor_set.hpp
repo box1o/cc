@@ -28,7 +28,7 @@ public:
     public:
         Builder& Bind(u32 binding, Buffer* buffer, u64 offset = 0, u64 range = 0);
         Builder& Bind(u32 binding, Texture* texture, Sampler* sampler = nullptr);
-        scope<DescriptorSet> Build();
+        [[nodiscard]] scope<DescriptorSet> Build();
 
     private:
         Device* device_{nullptr};
@@ -41,27 +41,27 @@ public:
 
     virtual ~DescriptorSet() = default;
 
-    static Builder Create(Device* device, DescriptorSetLayout* layout);
+    [[nodiscard]] static Builder Create(Device* device, DescriptorSetLayout* layout);
 
-    DescriptorSetLayout* GetLayout() const { return layout_; }
+    [[nodiscard]] DescriptorSetLayout* GetLayout() const noexcept { return layout_; }
 
     virtual void Bind(u32 setIndex) const = 0;
     virtual void Update(u32 binding, Buffer* buffer, u64 offset = 0, u64 range = 0) = 0;
     virtual void Update(u32 binding, Texture* texture, Sampler* sampler = nullptr) = 0;
 
-    virtual u32 GetHandle() const = 0;
+    [[nodiscard]] virtual u32 GetHandle() const noexcept = 0;
 
 protected:
-    DescriptorSet(DescriptorSetLayout* layout);
+    explicit DescriptorSet(DescriptorSetLayout* layout) noexcept;
 
-    DescriptorSetLayout* layout_;
+    DescriptorSetLayout* layout_{nullptr};
 };
 
 class DescriptorSetImpl {
 public:
     virtual ~DescriptorSetImpl() = default;
     virtual void Bind(u32 setIndex) const = 0;
-    virtual u32 GetHandle() const = 0;
+    [[nodiscard]] virtual u32 GetHandle() const noexcept = 0;
 
 protected:
     DescriptorSetImpl() = default;

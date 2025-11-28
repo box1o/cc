@@ -50,8 +50,8 @@ public:
     void PushConstants(ShaderStage stage, u32 offset, u32 size, const void* data) override;
 
     //NOTE: State Queries
-    bool IsRecording() const override { return isRecording_; }
-    bool IsInsideRenderPass() const override { return isInsideRenderPass_; }
+    [[nodiscard]] bool IsRecording() const override { return isRecording_; }
+    [[nodiscard]] bool IsInsideRenderPass() const override { return isInsideRenderPass_; }
 
 private:
     void ApplyPipelineState();
@@ -76,6 +76,6 @@ private:
     u32 fullscreenQuadVAO_{0};
 };
 
-scope<CommandBuffer> CreateOpenGLCommandBuffer(Device* device);
+[[nodiscard]] scope<CommandBuffer> CreateOpenGLCommandBuffer(Device* device);
 
 } // namespace cc::gfx

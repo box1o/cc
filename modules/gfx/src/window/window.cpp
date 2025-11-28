@@ -5,47 +5,47 @@
 
 namespace cc::gfx {
 
-Window::Builder Window::Create() {
+[[nodiscard]] Window::Builder Window::Create() noexcept {
     return Builder{};
 }
 
-Window::Builder& Window::Builder::SetTitle(std::string_view title) {
+Window::Builder& Window::Builder::SetTitle(std::string_view title) noexcept {
     config_.title = title;
     return *this;
 }
 
-Window::Builder& Window::Builder::SetSize(u32 width, u32 height) {
-    config_. width = width;
-    config_. height = height;
+Window::Builder& Window::Builder::SetSize(u32 width, u32 height) noexcept {
+    config_.width = width;
+    config_.height = height;
     return *this;
 }
 
-Window::Builder& Window::Builder::SetResizable(bool resizable) {
+Window::Builder& Window::Builder::SetResizable(bool resizable) noexcept {
     config_.resizable = resizable;
     return *this;
 }
 
-Window::Builder& Window::Builder::SetVSync(bool vsync) {
+Window::Builder& Window::Builder::SetVSync(bool vsync) noexcept {
     config_.vsync = vsync;
     return *this;
 }
 
-Window::Builder& Window::Builder::SetFullscreen(bool fullscreen) {
+Window::Builder& Window::Builder::SetFullscreen(bool fullscreen) noexcept {
     config_.fullscreen = fullscreen;
     return *this;
 }
 
-Window::Builder& Window::Builder::SetDecorated(bool decorated) {
+Window::Builder& Window::Builder::SetDecorated(bool decorated) noexcept {
     config_.decorated = decorated;
     return *this;
 }
 
-Window::Builder& Window::Builder::SetBackend(WindowBackend backend) {
+Window::Builder& Window::Builder::SetBackend(WindowBackend backend) noexcept {
     config_.backend = backend;
     return *this;
 }
 
-scope<Window> Window::Builder::Build() {
+[[nodiscard]] scope<Window> Window::Builder::Build() {
     switch (config_.backend) {
         case WindowBackend::GLFW:
             return GLFWWindowImpl::Create(config_);

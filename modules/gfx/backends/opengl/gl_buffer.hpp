@@ -13,18 +13,24 @@ public:
     ~OpenGLBufferImpl() override;
 
     void Update(const void* data, u64 size, u64 offset) override;
-    u32 GetHandle() const override { return handle_; }
+    [[nodiscard]] u32 GetHandle() const noexcept override { return handle_; }
 
 private:
-    unsigned int GetGLTarget() const;
-    unsigned int GetGLUsage() const;
+    [[nodiscard]] unsigned int GetGLTarget() const noexcept;
+    [[nodiscard]] unsigned int GetGLUsage() const noexcept;
 
     u32 handle_{0};
-    BufferType type_;
-    BufferUsage usage_;
-    u64 size_;
+    BufferType type_{BufferType::Vertex};
+    BufferUsage usage_{BufferUsage::Static};
+    u64 size_{0};
 };
 
-scope<Buffer> CreateOpenGLBuffer(Device* device, BufferType type, u64 size, BufferUsage usage, const void* data);
+[[nodiscard]] scope<Buffer> CreateOpenGLBuffer(
+    Device* device,
+    BufferType type,
+    u64 size,
+    BufferUsage usage,
+    const void* data
+);
 
 } // namespace cc::gfx

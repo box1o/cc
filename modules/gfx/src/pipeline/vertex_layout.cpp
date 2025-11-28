@@ -4,13 +4,13 @@
 
 namespace cc::gfx {
 
-VertexLayout::Builder VertexLayout::Create() {
+[[nodiscard]] VertexLayout::Builder VertexLayout::Create() {
     return Builder{};
 }
 
 VertexLayout::Builder& VertexLayout::Builder::Binding(u32 binding, u32 stride, VertexInputRate inputRate) {
     VertexBinding vb{};
-    vb. binding = binding;
+    vb.binding = binding;
     vb.stride = stride;
     vb.inputRate = inputRate;
     bindings_.push_back(vb);
@@ -22,12 +22,12 @@ VertexLayout::Builder& VertexLayout::Builder::Attribute(u32 location, u32 bindin
     attr.location = location;
     attr.binding = binding;
     attr.format = format;
-    attr. offset = offset;
+    attr.offset = offset;
     attributes_.push_back(attr);
     return *this;
 }
 
-scope<VertexLayout> VertexLayout::Builder::Build() {
+[[nodiscard]] scope<VertexLayout> VertexLayout::Builder::Build() {
     if (bindings_.empty()) {
         log::Error("VertexLayout requires at least one binding");
         throw std::runtime_error("VertexLayout requires at least one binding");
@@ -44,7 +44,7 @@ scope<VertexLayout> VertexLayout::Builder::Build() {
 VertexLayout::VertexLayout(std::vector<VertexBinding> bindings, std::vector<VertexAttribute> attributes)
     : bindings_(std::move(bindings))
     , attributes_(std::move(attributes)) {
-    log::Trace("VertexLayout created ({} bindings, {} attributes)", bindings_. size(), attributes_.size());
+    log::Trace("VertexLayout created ({} bindings, {} attributes)", bindings_.size(), attributes_.size());
 }
 
 const VertexBinding* VertexLayout::GetBinding(u32 binding) const {

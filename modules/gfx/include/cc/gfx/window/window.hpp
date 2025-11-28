@@ -24,47 +24,47 @@ class Window {
 public:
     class Builder {
     public:
-        Builder& SetTitle(std::string_view title);
-        Builder& SetSize(u32 width, u32 height);
-        Builder& SetResizable(bool resizable);
-        Builder& SetVSync(bool vsync);
-        Builder& SetFullscreen(bool fullscreen);
-        Builder& SetDecorated(bool decorated);
-        Builder& SetBackend(WindowBackend backend);
-        scope<Window> Build();
+        [[nodiscard]] Builder& SetTitle(std::string_view title) noexcept;
+        [[nodiscard]] Builder& SetSize(u32 width, u32 height) noexcept;
+        [[nodiscard]] Builder& SetResizable(bool resizable) noexcept;
+        [[nodiscard]] Builder& SetVSync(bool vsync) noexcept;
+        [[nodiscard]] Builder& SetFullscreen(bool fullscreen) noexcept;
+        [[nodiscard]] Builder& SetDecorated(bool decorated) noexcept;
+        [[nodiscard]] Builder& SetBackend(WindowBackend backend) noexcept;
+        [[nodiscard]] scope<Window> Build();
 
     private:
-        WindowConfig config_;
+        WindowConfig config_{};
         friend class Window;
     };
 
     virtual ~Window() = default;
 
-    static Builder Create();
+    [[nodiscard]] static Builder Create() noexcept;
 
-    virtual bool ShouldClose() const = 0;
+    [[nodiscard]] virtual bool ShouldClose() const = 0;
     virtual void PollEvents() = 0;
     virtual void SwapBuffers() = 0;
     virtual void Close() = 0;
 
-    virtual u32 GetWidth() const = 0;
-    virtual u32 GetHeight() const = 0;
-    virtual std::string_view GetTitle() const = 0;
+    [[nodiscard]] virtual u32 GetWidth() const = 0;
+    [[nodiscard]] virtual u32 GetHeight() const = 0;
+    [[nodiscard]] virtual std::string_view GetTitle() const = 0;
 
-    virtual bool IsVSync() const = 0;
-    virtual bool IsFullscreen() const = 0;
-    virtual bool IsResizable() const = 0;
+    [[nodiscard]] virtual bool IsVSync() const = 0;
+    [[nodiscard]] virtual bool IsFullscreen() const = 0;
+    [[nodiscard]] virtual bool IsResizable() const = 0;
 
     virtual void SetVSync(bool enabled) = 0;
     virtual void SetTitle(std::string_view title) = 0;
     virtual void SetSize(u32 width, u32 height) = 0;
 
-    virtual void* GetNativeHandle() const = 0;
-    virtual WindowBackend GetBackend() const = 0;
+    [[nodiscard]] virtual void* GetNativeHandle() const = 0;
+    [[nodiscard]] virtual WindowBackend GetBackend() const = 0;
 
     virtual void SetResizeCallback(WindowResizeCallback callback) = 0;
 
-    f32 GetAspectRatio() const {
+    [[nodiscard]] f32 GetAspectRatio() const {
         const u32 h = GetHeight();
         return h > 0 ? static_cast<f32>(GetWidth()) / static_cast<f32>(h) : 1.0f;
     }

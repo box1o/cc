@@ -9,14 +9,14 @@ class Swapchain {
 public:
     ~Swapchain();
 
-    static scope<Swapchain> Create(Window* window, Device* device);
+    [[nodiscard]] static scope<Swapchain> Create(Window* window, Device* device);
 
     void Clear(const ClearValue& clearValue);
     void Present();
 
-    u32 GetWidth() const;
-    u32 GetHeight() const;
-    Framebuffer* GetFramebuffer() const { return framebuffer_. get(); }
+    [[nodiscard]] u32 GetWidth() const;
+    [[nodiscard]] u32 GetHeight() const;
+    [[nodiscard]] Framebuffer* GetFramebuffer() const { return framebuffer_.get(); }
 
 private:
     Swapchain() = default;

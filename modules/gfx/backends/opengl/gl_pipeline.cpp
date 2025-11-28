@@ -16,22 +16,22 @@ struct GLVertexFormatInfo {
     bool normalized;
 };
 
-GLVertexFormatInfo GetGLVertexFormat(VertexFormat format) {
+[[nodiscard]] GLVertexFormatInfo GetGLVertexFormat(VertexFormat format) noexcept {
     switch (format) {
-        case VertexFormat::Float:      return {1, GL_FLOAT, false};
-        case VertexFormat::Float2:     return {2, GL_FLOAT, false};
-        case VertexFormat::Float3:     return {3, GL_FLOAT, false};
-        case VertexFormat::Float4:     return {4, GL_FLOAT, false};
-        case VertexFormat::Int:        return {1, GL_INT, false};
-        case VertexFormat::Int2:       return {2, GL_INT, false};
-        case VertexFormat::Int3:       return {3, GL_INT, false};
-        case VertexFormat::Int4:       return {4, GL_INT, false};
-        case VertexFormat::UInt:       return {1, GL_UNSIGNED_INT, false};
-        case VertexFormat::UInt2:      return {2, GL_UNSIGNED_INT, false};
-        case VertexFormat::UInt3:      return {3, GL_UNSIGNED_INT, false};
-        case VertexFormat::UInt4:      return {4, GL_UNSIGNED_INT, false};
-        case VertexFormat::Byte4Norm:  return {4, GL_BYTE, true};
-        case VertexFormat::UByte4Norm: return {4, GL_UNSIGNED_BYTE, true};
+        case VertexFormat::Float:      return {1, GL_FLOAT,          false};
+        case VertexFormat::Float2:     return {2, GL_FLOAT,          false};
+        case VertexFormat::Float3:     return {3, GL_FLOAT,          false};
+        case VertexFormat::Float4:     return {4, GL_FLOAT,          false};
+        case VertexFormat::Int:        return {1, GL_INT,            false};
+        case VertexFormat::Int2:       return {2, GL_INT,            false};
+        case VertexFormat::Int3:       return {3, GL_INT,            false};
+        case VertexFormat::Int4:       return {4, GL_INT,            false};
+        case VertexFormat::UInt:       return {1, GL_UNSIGNED_INT,   false};
+        case VertexFormat::UInt2:      return {2, GL_UNSIGNED_INT,   false};
+        case VertexFormat::UInt3:      return {3, GL_UNSIGNED_INT,   false};
+        case VertexFormat::UInt4:      return {4, GL_UNSIGNED_INT,   false};
+        case VertexFormat::Byte4Norm:  return {4, GL_BYTE,           true};
+        case VertexFormat::UByte4Norm: return {4, GL_UNSIGNED_BYTE,  true};
     }
     return {4, GL_FLOAT, false};
 }
@@ -72,7 +72,7 @@ void OpenGLPipeline::CreateVAO() {
     }
 
     if (vertexLayout_ == nullptr) {
-        log::Trace("Pipeline created without vertex layout (fullscreen pass)");
+        log::Trace("Pipeline created without vertex layout (fullscreen or compute pass)");
         return;
     }
 
@@ -80,21 +80,21 @@ void OpenGLPipeline::CreateVAO() {
         glVertexArrayBindingDivisor(
             vao_,
             binding.binding,
-            binding. inputRate == VertexInputRate::PerInstance ? 1 : 0
+            binding.inputRate == VertexInputRate::PerInstance ? 1 : 0
         );
     }
 
     for (const auto& attr : vertexLayout_->GetAttributes()) {
-        GLVertexFormatInfo formatInfo = GetGLVertexFormat(attr.format);
+        const GLVertexFormatInfo formatInfo = GetGLVertexFormat(attr.format);
 
         glEnableVertexArrayAttrib(vao_, attr.location);
 
         if (formatInfo.type == GL_INT || formatInfo.type == GL_UNSIGNED_INT) {
             glVertexArrayAttribIFormat(
                 vao_,
-                attr. location,
+                attr.location,
                 formatInfo.componentCount,
-                formatInfo. type,
+                formatInfo.type,
                 attr.offset
             );
         } else {
@@ -103,7 +103,7 @@ void OpenGLPipeline::CreateVAO() {
                 attr.location,
                 formatInfo.componentCount,
                 formatInfo.type,
-                formatInfo.normalized ?  GL_TRUE : GL_FALSE,
+                formatInfo.normalized ? GL_TRUE : GL_FALSE,
                 attr.offset
             );
         }
@@ -143,7 +143,7 @@ void OpenGLPipeline::BindVertexBuffer(u32 binding, Buffer* buffer, u64 offset) c
         return;
     }
 
-    u32 stride = vertexLayout_->GetStride(binding);
+    const u32 stride = vertexLayout_->GetStride(binding);
 
     glVertexArrayVertexBuffer(
         vao_,
@@ -165,7 +165,7 @@ void OpenGLPipeline::BindIndexBuffer(Buffer* buffer, IndexType indexType) const 
 }
 
 void OpenGLPipeline::Draw(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) const {
-    unsigned int glTopology = GetGLTopology(topology_);
+    const unsigned int glTopology = GetGLTopology(topology_);
 
     if (instanceCount > 1 || firstInstance > 0) {
         glDrawArraysInstancedBaseInstance(
@@ -184,10 +184,16 @@ void OpenGLPipeline::Draw(u32 vertexCount, u32 instanceCount, u32 firstVertex, u
     }
 }
 
-void OpenGLPipeline::DrawIndexed(u32 indexCount, u32 instanceCount, u32 firstIndex, i32 vertexOffset, u32 firstInstance) const {
-    unsigned int glTopology = GetGLTopology(topology_);
-    unsigned int glIndexType = (boundIndexType_ == IndexType::U16) ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
-    size_t indexSize = (boundIndexType_ == IndexType::U16) ? sizeof(u16) : sizeof(u32);
+void OpenGLPipeline::DrawIndexed(
+    u32 indexCount,
+    u32 instanceCount,
+    u32 firstIndex,
+    i32 vertexOffset,
+    u32 firstInstance
+) const {
+    const unsigned int glTopology  = GetGLTopology(topology_);
+    const unsigned int glIndexType = (boundIndexType_ == IndexType::U16) ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
+    const size_t indexSize         = (boundIndexType_ == IndexType::U16) ? sizeof(u16) : sizeof(u32);
 
     void* offset = reinterpret_cast<void*>(firstIndex * indexSize);
 
@@ -212,7 +218,7 @@ void OpenGLPipeline::DrawIndexed(u32 indexCount, u32 instanceCount, u32 firstInd
 }
 
 void OpenGLPipeline::ApplyRasterizerState() const {
-    if (rasterizer_. cullMode == CullMode::None) {
+    if (rasterizer_.cullMode == CullMode::None) {
         glDisable(GL_CULL_FACE);
     } else {
         glEnable(GL_CULL_FACE);
@@ -238,7 +244,7 @@ void OpenGLPipeline::ApplyDepthStencilState() const {
         glDisable(GL_DEPTH_TEST);
     }
 
-    glDepthMask(depthStencil_.depthWriteEnable ?  GL_TRUE : GL_FALSE);
+    glDepthMask(depthStencil_.depthWriteEnable ? GL_TRUE : GL_FALSE);
 
     if (depthStencil_.stencilTestEnable) {
         glEnable(GL_STENCIL_TEST);
@@ -252,7 +258,7 @@ void OpenGLPipeline::ApplyBlendState() const {
         glEnable(GL_BLEND);
         glBlendFuncSeparate(
             GetGLBlendFactor(blend_.srcColorFactor),
-            GetGLBlendFactor(blend_. dstColorFactor),
+            GetGLBlendFactor(blend_.dstColorFactor),
             GetGLBlendFactor(blend_.srcAlphaFactor),
             GetGLBlendFactor(blend_.dstAlphaFactor)
         );
@@ -265,7 +271,7 @@ void OpenGLPipeline::ApplyBlendState() const {
     }
 }
 
-unsigned int OpenGLPipeline::GetGLTopology(PrimitiveTopology topology) {
+unsigned int OpenGLPipeline::GetGLTopology(PrimitiveTopology topology) noexcept {
     switch (topology) {
         case PrimitiveTopology::PointList:     return GL_POINTS;
         case PrimitiveTopology::LineList:      return GL_LINES;
@@ -276,7 +282,7 @@ unsigned int OpenGLPipeline::GetGLTopology(PrimitiveTopology topology) {
     return GL_TRIANGLES;
 }
 
-unsigned int OpenGLPipeline::GetGLCompareOp(CompareOp op) {
+unsigned int OpenGLPipeline::GetGLCompareOp(CompareOp op) noexcept {
     switch (op) {
         case CompareOp::Never:        return GL_NEVER;
         case CompareOp::Less:         return GL_LESS;
@@ -290,7 +296,7 @@ unsigned int OpenGLPipeline::GetGLCompareOp(CompareOp op) {
     return GL_LESS;
 }
 
-unsigned int OpenGLPipeline::GetGLBlendFactor(BlendFactor factor) {
+unsigned int OpenGLPipeline::GetGLBlendFactor(BlendFactor factor) noexcept {
     switch (factor) {
         case BlendFactor::Zero:             return GL_ZERO;
         case BlendFactor::One:              return GL_ONE;
@@ -306,7 +312,7 @@ unsigned int OpenGLPipeline::GetGLBlendFactor(BlendFactor factor) {
     return GL_ONE;
 }
 
-unsigned int OpenGLPipeline::GetGLBlendOp(BlendOp op) {
+unsigned int OpenGLPipeline::GetGLBlendOp(BlendOp op) noexcept {
     switch (op) {
         case BlendOp::Add:             return GL_FUNC_ADD;
         case BlendOp::Subtract:        return GL_FUNC_SUBTRACT;
@@ -317,7 +323,7 @@ unsigned int OpenGLPipeline::GetGLBlendOp(BlendOp op) {
     return GL_FUNC_ADD;
 }
 
-unsigned int OpenGLPipeline::GetGLPolygonMode(PolygonMode mode) {
+unsigned int OpenGLPipeline::GetGLPolygonMode(PolygonMode mode) noexcept {
     switch (mode) {
         case PolygonMode::Fill:  return GL_FILL;
         case PolygonMode::Line:  return GL_LINE;
@@ -326,7 +332,7 @@ unsigned int OpenGLPipeline::GetGLPolygonMode(PolygonMode mode) {
     return GL_FILL;
 }
 
-scope<Pipeline> CreateOpenGLPipeline(
+[[nodiscard]] scope<Pipeline> CreateOpenGLPipeline(
     Device* /*device*/,
     Shader* shader,
     VertexLayout* vertexLayout,

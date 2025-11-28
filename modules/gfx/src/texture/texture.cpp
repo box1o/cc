@@ -7,26 +7,62 @@
 namespace cc::gfx {
 
 //NOTE: Texture2D Implementation
-scope<Texture2D> Texture2D::Create(Device* device, u32 width, u32 height, TextureFormat format, const void* data) {
+[[nodiscard]] scope<Texture2D> Texture2D::Create(
+    Device* device,
+    u32 width,
+    u32 height,
+    TextureFormat format,
+    const void* data
+) {
     if (device == nullptr) {
         log::Critical("Device is required to create Texture2D");
         throw std::runtime_error("Device is null");
     }
 
-    return device->CreateTexture2D(width, height, format, data);
+    switch (device->GetBackend()) {
+        case Backend::OpenGL:
+            return CreateOpenGLTexture2D(device, width, height, format, data);
+        case Backend::Vulkan:
+            log::Critical("Vulkan Texture2D backend not implemented");
+            throw std::runtime_error("Vulkan Texture2D backend not implemented");
+        case Backend::Metal:
+            log::Critical("Metal Texture2D backend not implemented");
+            throw std::runtime_error("Metal Texture2D backend not implemented");
+    }
+
+    log::Critical("Unknown backend for Texture2D::Create");
+    throw std::runtime_error("Unknown backend");
 }
 
-scope<Texture2D> Texture2D::FromFile(Device* device, const std::filesystem::path& filepath) {
+[[nodiscard]] scope<Texture2D> Texture2D::FromFile(
+    Device* device,
+    const std::filesystem::path& filepath
+) {
     if (device == nullptr) {
-        log::Critical("Device is required to create Texture2D");
+        log::Critical("Device is required to create Texture2D from file");
         throw std::runtime_error("Device is null");
     }
 
-    return CreateOpenGLTexture2DFromFile(device, filepath);
+    switch (device->GetBackend()) {
+        case Backend::OpenGL:
+            return CreateOpenGLTexture2DFromFile(device, filepath);
+        case Backend::Vulkan:
+            log::Critical("Vulkan Texture2D::FromFile backend not implemented");
+            throw std::runtime_error("Vulkan Texture2D::FromFile backend not implemented");
+        case Backend::Metal:
+            log::Critical("Metal Texture2D::FromFile backend not implemented");
+            throw std::runtime_error("Metal Texture2D::FromFile backend not implemented");
+    }
+
+    log::Critical("Unknown backend for Texture2D::FromFile");
+    throw std::runtime_error("Unknown backend");
 }
 
-Texture2D::Texture2D(u32 width, u32 height, TextureFormat format, scope<TextureImpl> impl)
-    : width_(width), height_(height), format_(format), impl_(std::move(impl)) {}
+Texture2D::Texture2D(u32 width, u32 height, TextureFormat format, scope<TextureImpl> impl) noexcept
+    : width_(width)
+    , height_(height)
+    , format_(format)
+    , impl_(std::move(impl)) {}
 
 Texture2D::~Texture2D() = default;
 
@@ -38,31 +74,64 @@ void Texture2D::Unbind() const {
     impl_->Unbind();
 }
 
-u32 Texture2D::GetHandle() const {
+u32 Texture2D::GetHandle() const noexcept {
     return impl_->GetHandle();
 }
 
 //NOTE: TextureCube Implementation
-scope<TextureCube> TextureCube::Create(Device* device, u32 size, TextureFormat format) {
+[[nodiscard]] scope<TextureCube> TextureCube::Create(
+    Device* device,
+    u32 size,
+    TextureFormat format
+) {
     if (device == nullptr) {
         log::Critical("Device is required to create TextureCube");
         throw std::runtime_error("Device is null");
     }
 
-    return device->CreateTextureCube(size, format);
+    switch (device->GetBackend()) {
+        case Backend::OpenGL:
+            return CreateOpenGLTextureCube(device, size, format);
+        case Backend::Vulkan:
+            log::Critical("Vulkan TextureCube backend not implemented");
+            throw std::runtime_error("Vulkan TextureCube backend not implemented");
+        case Backend::Metal:
+            log::Critical("Metal TextureCube backend not implemented");
+            throw std::runtime_error("Metal TextureCube backend not implemented");
+    }
+
+    log::Critical("Unknown backend for TextureCube::Create");
+    throw std::runtime_error("Unknown backend");
 }
 
-scope<TextureCube> TextureCube::FromFiles(Device* device, const std::array<std::filesystem::path, CUBEMAP_FACE_COUNT>& faces) {
+[[nodiscard]] scope<TextureCube> TextureCube::FromFiles(
+    Device* device,
+    const std::array<std::filesystem::path, CUBEMAP_FACE_COUNT>& faces
+) {
     if (device == nullptr) {
-        log::Critical("Device is required to create TextureCube");
+        log::Critical("Device is required to create TextureCube from files");
         throw std::runtime_error("Device is null");
     }
 
-    return CreateOpenGLTextureCubeFromFiles(device, faces);
+    switch (device->GetBackend()) {
+        case Backend::OpenGL:
+            return CreateOpenGLTextureCubeFromFiles(device, faces);
+        case Backend::Vulkan:
+            log::Critical("Vulkan TextureCube::FromFiles backend not implemented");
+            throw std::runtime_error("Vulkan TextureCube::FromFiles backend not implemented");
+        case Backend::Metal:
+            log::Critical("Metal TextureCube::FromFiles backend not implemented");
+            throw std::runtime_error("Metal TextureCube::FromFiles backend not implemented");
+    }
+
+    log::Critical("Unknown backend for TextureCube::FromFiles");
+    throw std::runtime_error("Unknown backend");
 }
 
-TextureCube::TextureCube(u32 size, TextureFormat format, scope<TextureImpl> impl)
-    : size_(size), format_(format), impl_(std::move(impl)) {}
+TextureCube::TextureCube(u32 size, TextureFormat format, scope<TextureImpl> impl) noexcept
+    : size_(size)
+    , format_(format)
+    , impl_(std::move(impl)) {}
 
 TextureCube::~TextureCube() = default;
 
@@ -74,7 +143,7 @@ void TextureCube::Unbind() const {
     impl_->Unbind();
 }
 
-u32 TextureCube::GetHandle() const {
+u32 TextureCube::GetHandle() const noexcept {
     return impl_->GetHandle();
 }
 

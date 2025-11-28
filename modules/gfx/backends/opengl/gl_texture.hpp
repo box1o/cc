@@ -15,17 +15,17 @@ public:
 
     void Bind(u32 slot) const override;
     void Unbind() const override;
-    u32 GetHandle() const override { return handle_; }
+    [[nodiscard]] u32 GetHandle() const noexcept override { return handle_; }
 
 private:
-    unsigned int GetGLInternalFormat() const;
-    unsigned int GetGLFormat() const;
-    unsigned int GetGLType() const;
+    [[nodiscard]] unsigned int GetGLInternalFormat() const noexcept;
+    [[nodiscard]] unsigned int GetGLFormat() const noexcept;
+    [[nodiscard]] unsigned int GetGLType() const noexcept;
 
     u32 handle_{0};
-    u32 width_;
-    u32 height_;
-    TextureFormat format_;
+    u32 width_{0};
+    u32 height_{0};
+    TextureFormat format_{TextureFormat::RGBA8};
 };
 
 class OpenGLTextureCubeImpl final : public TextureImpl {
@@ -35,22 +35,40 @@ public:
 
     void Bind(u32 slot) const override;
     void Unbind() const override;
-    u32 GetHandle() const override { return handle_; }
+    [[nodiscard]] u32 GetHandle() const noexcept override { return handle_; }
 
 private:
-    unsigned int GetGLInternalFormat() const;
-    unsigned int GetGLFormat() const;
-    unsigned int GetGLType() const;
+    [[nodiscard]] unsigned int GetGLInternalFormat() const noexcept;
+    [[nodiscard]] unsigned int GetGLFormat() const noexcept;
+    [[nodiscard]] unsigned int GetGLType() const noexcept;
 
     u32 handle_{0};
-    u32 size_;
-    TextureFormat format_;
+    u32 size_{0};
+    TextureFormat format_{TextureFormat::RGBA8};
 };
 
-scope<Texture2D> CreateOpenGLTexture2D(Device* device, u32 width, u32 height, TextureFormat format, const void* data);
-scope<Texture2D> CreateOpenGLTexture2DFromFile(Device* device, const std::filesystem::path& filepath);
+[[nodiscard]] scope<Texture2D> CreateOpenGLTexture2D(
+    Device* device,
+    u32 width,
+    u32 height,
+    TextureFormat format,
+    const void* data
+);
 
-scope<TextureCube> CreateOpenGLTextureCube(Device* device, u32 size, TextureFormat format);
-scope<TextureCube> CreateOpenGLTextureCubeFromFiles(Device* device, const std::array<std::filesystem::path, CUBEMAP_FACE_COUNT>& faces);
+[[nodiscard]] scope<Texture2D> CreateOpenGLTexture2DFromFile(
+    Device* device,
+    const std::filesystem::path& filepath
+);
+
+[[nodiscard]] scope<TextureCube> CreateOpenGLTextureCube(
+    Device* device,
+    u32 size,
+    TextureFormat format
+);
+
+[[nodiscard]] scope<TextureCube> CreateOpenGLTextureCubeFromFiles(
+    Device* device,
+    const std::array<std::filesystem::path, CUBEMAP_FACE_COUNT>& faces
+);
 
 } // namespace cc::gfx

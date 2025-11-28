@@ -6,24 +6,24 @@
 
 namespace cc::gfx {
 
-Device::Builder Device::Create(Window* window, Backend backend) {
+[[nodiscard]] Device::Builder Device::Create(Window* window, Backend backend) noexcept {
     Builder builder;
     builder.window_ = window;
     builder.backend_ = backend;
     return builder;
 }
 
-Device::Builder& Device::Builder::SetBackend(Backend backend) {
+Device::Builder& Device::Builder::SetBackend(Backend backend) noexcept {
     backend_ = backend;
     return *this;
 }
 
-Device::Builder& Device::Builder::EnableValidation(bool enable) {
+Device::Builder& Device::Builder::EnableValidation(bool enable) noexcept {
     enableValidation_ = enable;
     return *this;
 }
 
-scope<Device> Device::Builder::Build() {
+[[nodiscard]] scope<Device> Device::Builder::Build() {
     if (window_ == nullptr) {
         log::Critical("Window is required to create device");
         throw std::runtime_error("Window is null");
@@ -32,11 +32,9 @@ scope<Device> Device::Builder::Build() {
     switch (backend_) {
         case Backend::OpenGL:
             return CreateOpenGLDevice(*this);
-
         case Backend::Vulkan:
             log::Critical("Vulkan backend not implemented");
             throw std::runtime_error("Vulkan backend not implemented");
-
         case Backend::Metal:
             log::Critical("Metal backend not implemented");
             throw std::runtime_error("Metal backend not implemented");
