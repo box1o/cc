@@ -17,4 +17,8 @@
 #include "pipeline/pipeline.hpp"
 #include "descriptor/descriptor_set_layout.hpp"
 #include "descriptor/descriptor_set.hpp"
+#include "command/command_buffer.hpp"
+#include "graph/resource_handle.hpp"
+#include "graph/render_pass.hpp"
+#include "graph/render_graph.hpp"
 // IWYU pragma: end_exports

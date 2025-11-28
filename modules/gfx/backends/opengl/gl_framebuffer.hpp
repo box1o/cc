@@ -13,8 +13,8 @@ public:
     OpenGLFramebufferImpl(
         u32 width,
         u32 height,
-        const std::unordered_map<u32, ref<Texture>>& colorAttachments,
-        ref<Texture> depthAttachment
+        const std::unordered_map<u32, Texture*>& colorAttachments,
+        Texture* depthAttachment
     );
     ~OpenGLFramebufferImpl() override;
 
@@ -25,7 +25,7 @@ public:
     bool CheckComplete() const;
 
 private:
-    void AttachTexture(unsigned int attachmentPoint, ref<Texture> texture) const;
+    void AttachTexture(unsigned int attachmentPoint, Texture* texture) const;
 
     u32 handle_{0};
     u32 width_;
@@ -38,8 +38,8 @@ public:
         u32 width,
         u32 height,
         scope<FramebufferImpl> impl,
-        std::unordered_map<u32, ref<Texture>> colorTextures,
-        ref<Texture> depthTexture
+        std::unordered_map<u32, Texture*> colorTextures,
+        Texture* depthTexture
     );
     ~OpenGLFramebuffer() override;
 
@@ -50,23 +50,23 @@ public:
     void Bind() const override;
     void Unbind() const override;
 
-    ref<Texture> GetColorTexture(u32 index) const override;
-    ref<Texture> GetDepthTexture() const override;
+    Texture* GetColorTexture(u32 index) const override;
+    Texture* GetDepthTexture() const override;
 
 private:
     u32 width_;
     u32 height_;
     scope<FramebufferImpl> impl_;
-    std::unordered_map<u32, ref<Texture>> colorTextures_;
-    ref<Texture> depthTexture_;
+    std::unordered_map<u32, Texture*> colorTextures_;
+    Texture* depthTexture_;
 };
 
 scope<Framebuffer> CreateOpenGLFramebuffer(
     Device* device,
     u32 width,
     u32 height,
-    const std::unordered_map<u32, ref<Texture>>& colorAttachments,
-    ref<Texture> depthAttachment
+    const std::unordered_map<u32, Texture*>& colorAttachments,
+    Texture* depthAttachment
 );
 
 scope<Framebuffer> CreateOpenGLDefaultFramebuffer(Device* device, u32 width, u32 height);

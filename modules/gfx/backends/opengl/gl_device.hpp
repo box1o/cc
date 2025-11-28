@@ -24,7 +24,7 @@ public:
     scope<Framebuffer> CreateDefaultFramebuffer(u32 width, u32 height) override;
     scope<DescriptorSetLayout> CreateDescriptorSetLayout(const std::vector<DescriptorBinding>& bindings) override;
     scope<DescriptorSet> CreateDescriptorSet(
-        ref<DescriptorSetLayout> layout,
+        DescriptorSetLayout* layout,
         const std::vector<BufferBinding>& bufferBindings,
         const std::vector<TextureBinding>& textureBindings
     ) override;
@@ -37,6 +37,7 @@ public:
         const DepthStencilState& depthStencil,
         const BlendState& blend
     ) override;
+    scope<CommandBuffer> CreateCommandBuffer() override;
 
     static scope<Device> CreateFromBuilder(const Device::Builder& builder);
 

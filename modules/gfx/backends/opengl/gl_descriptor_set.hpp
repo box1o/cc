@@ -11,15 +11,15 @@ class Device;
 class OpenGLDescriptorSet final : public DescriptorSet {
 public:
     OpenGLDescriptorSet(
-        ref<DescriptorSetLayout> layout,
+        DescriptorSetLayout* layout,
         std::vector<BufferBinding> bufferBindings,
         std::vector<TextureBinding> textureBindings
     );
     ~OpenGLDescriptorSet() override;
 
     void Bind(u32 setIndex) const override;
-    void Update(u32 binding, ref<Buffer> buffer, u64 offset = 0, u64 range = 0) override;
-    void Update(u32 binding, ref<Texture> texture, ref<Sampler> sampler = nullptr) override;
+    void Update(u32 binding, Buffer* buffer, u64 offset = 0, u64 range = 0) override;
+    void Update(u32 binding, Texture* texture, Sampler* sampler = nullptr) override;
 
     u32 GetHandle() const override { return handle_; }
 
@@ -36,7 +36,7 @@ private:
 
 scope<DescriptorSet> CreateOpenGLDescriptorSet(
     Device* device,
-    ref<DescriptorSetLayout> layout,
+    DescriptorSetLayout* layout,
     const std::vector<BufferBinding>& bufferBindings,
     const std::vector<TextureBinding>& textureBindings
 );

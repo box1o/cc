@@ -3,11 +3,7 @@
 
 namespace cc::gfx {
 
-class Shader;
-class VertexLayout;
-class DescriptorSetLayout;
-
-//NOTE: Backend Types
+// NOTE: Backend Types
 enum class Backend : u8 {
     OpenGL = 0,
     Vulkan = 1,
@@ -19,7 +15,7 @@ enum class WindowBackend : u8 {
     Native = 1
 };
 
-//NOTE: Buffer Types
+// NOTE: Buffer Types
 enum class BufferType : u8 {
     Vertex  = 0,
     Index   = 1,
@@ -39,7 +35,7 @@ enum class IndexType : u8 {
     U32 = 1
 };
 
-//NOTE: Texture Types
+// NOTE: Texture Types
 enum class TextureFormat : u8 {
     R8,
     RG8,
@@ -96,7 +92,7 @@ enum class TextureWrap : u8 {
     ClampToBorder = 3
 };
 
-//NOTE: Pipeline Types
+// NOTE: Pipeline Types
 enum class PrimitiveTopology : u8 {
     PointList     = 0,
     LineList      = 1,
@@ -154,7 +150,7 @@ enum class PolygonMode : u8 {
     Point = 2
 };
 
-//NOTE: Shader Types
+// NOTE: Shader Types
 enum class ShaderStage : u8 {
     Vertex                 = 1 << 0,
     Fragment               = 1 << 1,
@@ -172,7 +168,7 @@ constexpr bool operator&(ShaderStage a, ShaderStage b) {
     return (static_cast<u8>(a) & static_cast<u8>(b)) != 0;
 }
 
-//NOTE: Vertex Types
+// NOTE: Vertex Types
 enum class VertexFormat : u8 {
     Float,
     Float2,
@@ -195,25 +191,25 @@ enum class VertexInputRate : u8 {
     PerInstance = 1
 };
 
-//NOTE: Descriptor Types
+// NOTE: Descriptor Types
 enum class DescriptorType : u8 {
-    UniformBuffer        = 0,
-    StorageBuffer        = 1,
-    SampledTexture       = 2,
-    StorageTexture       = 3,
-    Sampler              = 4,
+    UniformBuffer      = 0,
+    StorageBuffer      = 1,
+    SampledTexture     = 2,
+    StorageTexture     = 3,
+    Sampler            = 4,
     CombinedImageSampler = 5
 };
 
-//NOTE: Render Pass Types
+// NOTE: Render Pass Types
 enum class LoadOp : u8 {
-    Load     = 0,
-    Clear    = 1,
+    Load   = 0,
+    Clear  = 1,
     DontCare = 2
 };
 
 enum class StoreOp : u8 {
-    Store    = 0,
+    Store  = 0,
     DontCare = 1
 };
 
@@ -234,7 +230,21 @@ enum class ResourceState : u8 {
     TransferDst = 7
 };
 
-//NOTE: Shader Reflection Types
+// NOTE: Render Graph Types
+enum class PassType : u8 {
+    Graphics = 0,
+    Compute  = 1,
+    Transfer = 2
+};
+
+enum class ResourceType : u8 {
+    None       = 0,
+    Texture    = 1,
+    Buffer     = 2,
+    Backbuffer = 3
+};
+
+// NOTE: Shader Reflection Types
 enum class UniformType : u8 {
     None = 0,
     Float,
@@ -290,7 +300,7 @@ struct ShaderReflection {
     u32 samplerCount{0};
 };
 
-//NOTE: Device Capability Structures
+// NOTE: Device Capability Structures
 struct DeviceCapabilities {
     u32 maxTextureSize{0};
     u32 maxTextureUnits{0};
@@ -315,7 +325,7 @@ struct DeviceInfo {
     const char* shadingLanguageVersion{nullptr};
 };
 
-//NOTE: Configuration Structures
+// NOTE: Configuration Structures
 struct SamplerConfig {
     TextureFilter minFilter{TextureFilter::Linear};
     TextureFilter magFilter{TextureFilter::Linear};
@@ -326,18 +336,7 @@ struct SamplerConfig {
     f32 borderColor[4]{0.0f, 0.0f, 0.0f, 1.0f};
 };
 
-struct ClearValue {
-    union {
-        struct { f32 r, g, b, a; } color;
-        struct { f32 depth; u32 stencil; } depthStencil;
-    };
-
-    ClearValue() : color{0.0f, 0.0f, 0.0f, 1.0f} {}
-    ClearValue(f32 r, f32 g, f32 b, f32 a = 1.0f) : color{r, g, b, a} {}
-    ClearValue(f32 depth, u32 stencil = 0) : depthStencil{depth, stencil} {}
-};
-
-//NOTE: Vertex Layout Types
+// NOTE: Vertex Layout Types
 struct VertexBinding {
     u32 binding{0};
     u32 stride{0};
@@ -351,7 +350,7 @@ struct VertexAttribute {
     u32 offset{0};
 };
 
-//NOTE: Descriptor Binding
+// NOTE: Descriptor Binding
 struct DescriptorBinding {
     u32 binding{0};
     DescriptorType type{DescriptorType::UniformBuffer};
@@ -359,7 +358,7 @@ struct DescriptorBinding {
     u32 count{1};
 };
 
-//NOTE: Pipeline State Types
+// NOTE: Pipeline State Types
 struct RasterizerState {
     CullMode cullMode{CullMode::Back};
     FrontFace frontFace{FrontFace::CounterClockwise};
@@ -384,5 +383,72 @@ struct BlendState {
     BlendFactor dstAlphaFactor{BlendFactor::Zero};
     BlendOp alphaBlendOp{BlendOp::Add};
 };
+
+// NOTE: Viewport & Scissor
+struct Viewport {
+    f32 x{0.0f};
+    f32 y{0.0f};
+    f32 width{0.0f};
+    f32 height{0.0f};
+    f32 minDepth{0.0f};
+    f32 maxDepth{1.0f};
+};
+
+struct Scissor {
+    i32 x{0};
+    i32 y{0};
+    u32 width{0};
+    u32 height{0};
+};
+
+// NOTE: Clear Value
+struct ClearValue {
+    union {
+        struct { f32 r, g, b, a; } color;
+        struct { f32 depth; u32 stencil; } depthStencil;
+    };
+
+    ClearValue() : color{0.0f, 0.0f, 0.0f, 1.0f} {}
+    ClearValue(f32 r, f32 g, f32 b, f32 a = 1.0f) : color{r, g, b, a} {}
+    ClearValue(f32 depth, u32 stencil = 0) : depthStencil{depth, stencil} {}
+
+    static ClearValue Color(f32 r, f32 g, f32 b, f32 a = 1.0f) { return ClearValue(r, g, b, a); }
+    static ClearValue Depth(f32 depth = 1.0f, u32 stencil = 0) { return ClearValue(depth, stencil); }
+};
+
+// NOTE: Render Pass Attachment Configuration
+class Texture;
+class Framebuffer;
+
+struct ColorAttachmentInfo {
+    Texture* texture{nullptr};
+    LoadOp loadOp{LoadOp::Clear};
+    StoreOp storeOp{StoreOp::Store};
+    ClearValue clearValue{0.0f, 0.0f, 0.0f, 1.0f};
+};
+
+struct DepthAttachmentInfo {
+    Texture* texture{nullptr};
+    LoadOp loadOp{LoadOp::Clear};
+    StoreOp storeOp{StoreOp::Store};
+    LoadOp stencilLoadOp{LoadOp::DontCare};
+    StoreOp stencilStoreOp{StoreOp::DontCare};
+    ClearValue clearValue{1.0f, 0};
+};
+
+struct RenderPassBeginInfo {
+    Framebuffer* framebuffer{nullptr};
+    ColorAttachmentInfo* colorAttachments{nullptr};
+    u32 colorAttachmentCount{0};
+    DepthAttachmentInfo* depthAttachment{nullptr};
+    Viewport viewport{};
+    Scissor scissor{};
+};
+
+// NOTE: Command Buffer Limits
+constexpr u32 MAX_DESCRIPTOR_SETS = 8;
+constexpr u32 MAX_VERTEX_BINDINGS = 16;
+constexpr u32 MAX_COLOR_ATTACHMENTS = 8;
+constexpr u32 MAX_RENDER_PASSES = 64;
 
 } // namespace cc::gfx

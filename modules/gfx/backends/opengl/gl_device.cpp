@@ -1,11 +1,12 @@
 #include "gl_device.hpp"
-#include "backends/opengl/gl_descriptor_set.hpp"
-#include "backends/opengl/gl_descriptor_set_layout.hpp"
-#include "backends/opengl/gl_pipeline.hpp"
 #include "gl_buffer.hpp"
 #include "gl_texture.hpp"
 #include "gl_sampler.hpp"
 #include "gl_framebuffer.hpp"
+#include "gl_descriptor_set.hpp"
+#include "gl_descriptor_set_layout.hpp"
+#include "gl_pipeline.hpp"
+#include "gl_command_buffer.hpp"
 #include <cc/gfx/window/window.hpp>
 #include <cc/core/logger.hpp>
 #include <glad/glad.h>
@@ -20,7 +21,6 @@ static GLFWwindow* GetGLFWWindowHandle(Window* window) {
     return static_cast<GLFWwindow*>(window->GetNativeHandle());
 }
 
-//NOTE: OpenGL debug callback with proper APIENTRY calling convention
 void APIENTRY GLDebugCallback(
     unsigned int source,
     unsigned int type,
@@ -88,7 +88,7 @@ void OpenGLDevice::DebugCallbackImpl(
 void OpenGLDevice::SetupDebugCallback() {
     int flags = 0;
     glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
-    
+
     if ((flags & GL_CONTEXT_FLAG_DEBUG_BIT) != 0) {
         glEnable(GL_DEBUG_OUTPUT);
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
@@ -121,8 +121,8 @@ void OpenGLDevice::Initialize(GLFWwindow* window, bool enableValidation) {
     QueryInfo();
 
     log::Info("OpenGL Device initialized");
-    log::Info("  Vendor: {}", info_.vendorName != nullptr ? info_.vendorName : "Unknown");
-    log::Info("  Renderer: {}", info_.rendererName != nullptr ? info_.rendererName : "Unknown");
+    log::Info("  Vendor: {}", info_. vendorName != nullptr ? info_.vendorName : "Unknown");
+    log::Info("  Renderer: {}", info_. rendererName != nullptr ? info_.rendererName : "Unknown");
     log::Info("  Version: {}", info_.apiVersion != nullptr ? info_.apiVersion : "Unknown");
     log::Info("  GLSL: {}", info_.shadingLanguageVersion != nullptr ? info_.shadingLanguageVersion : "Unknown");
 }
@@ -134,16 +134,16 @@ void OpenGLDevice::QueryCapabilities() {
     capabilities_.maxTextureSize = static_cast<u32>(value);
 
     glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &value);
-    capabilities_. maxTextureUnits = static_cast<u32>(value);
+    capabilities_.maxTextureUnits = static_cast<u32>(value);
 
     glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &value);
-    capabilities_.maxVertexAttributes = static_cast<u32>(value);
+    capabilities_. maxVertexAttributes = static_cast<u32>(value);
 
     glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &value);
-    capabilities_.maxUniformBufferSize = static_cast<u32>(value);
+    capabilities_. maxUniformBufferSize = static_cast<u32>(value);
 
     glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &value);
-    capabilities_. maxStorageBufferSize = static_cast<u32>(value);
+    capabilities_.maxStorageBufferSize = static_cast<u32>(value);
 
     glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &value);
     capabilities_.maxColorAttachments = static_cast<u32>(value);
@@ -173,7 +173,7 @@ void OpenGLDevice::QueryInfo() {
     info_.vendorName = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
     info_.rendererName = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
     info_.apiVersion = reinterpret_cast<const char*>(glGetString(GL_VERSION));
-    info_.shadingLanguageVersion = reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION));
+    info_. shadingLanguageVersion = reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION));
 }
 
 OpenGLDevice::~OpenGLDevice() {
@@ -204,26 +204,12 @@ scope<Framebuffer> OpenGLDevice::CreateDefaultFramebuffer(u32 width, u32 height)
     return CreateOpenGLDefaultFramebuffer(this, width, height);
 }
 
-scope<Device> OpenGLDevice::CreateFromBuilder(const Device::Builder& builder) {
-    auto device = scope<OpenGLDevice>(new OpenGLDevice());
-    
-    //NOTE: Access private members via friend declaration
-    GLFWwindow* windowHandle = GetGLFWWindowHandle(builder.window_);
-    device->Initialize(windowHandle, builder.enableValidation_);
-    
-    return device;
-}
-
-scope<Device> CreateOpenGLDevice(const Device::Builder& builder) {
-    return OpenGLDevice::CreateFromBuilder(builder);
-}
-
 scope<DescriptorSetLayout> OpenGLDevice::CreateDescriptorSetLayout(const std::vector<DescriptorBinding>& bindings) {
     return CreateOpenGLDescriptorSetLayout(this, bindings);
 }
 
 scope<DescriptorSet> OpenGLDevice::CreateDescriptorSet(
-    ref<DescriptorSetLayout> layout,
+    DescriptorSetLayout* layout,
     const std::vector<BufferBinding>& bufferBindings,
     const std::vector<TextureBinding>& textureBindings
 ) {
@@ -251,5 +237,21 @@ scope<Pipeline> OpenGLDevice::CreatePipeline(
     );
 }
 
+scope<CommandBuffer> OpenGLDevice::CreateCommandBuffer() {
+    return CreateOpenGLCommandBuffer(this);
+}
+
+scope<Device> OpenGLDevice::CreateFromBuilder(const Device::Builder& builder) {
+    auto device = scope<OpenGLDevice>(new OpenGLDevice());
+
+    GLFWwindow* windowHandle = GetGLFWWindowHandle(builder.window_);
+    device->Initialize(windowHandle, builder.enableValidation_);
+
+    return device;
+}
+
+scope<Device> CreateOpenGLDevice(const Device::Builder& builder) {
+    return OpenGLDevice::CreateFromBuilder(builder);
+}
 
 } // namespace cc::gfx

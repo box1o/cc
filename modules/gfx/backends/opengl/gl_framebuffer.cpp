@@ -7,11 +7,11 @@
 
 namespace cc::gfx {
 
-void OpenGLFramebufferImpl::AttachTexture(unsigned int attachmentPoint, ref<Texture> texture) const {
+void OpenGLFramebufferImpl::AttachTexture(unsigned int attachmentPoint, Texture* texture) const {
     if (texture == nullptr) return;
 
     const u32 textureHandle = texture->GetHandle();
-    
+
     if (texture->GetType() == TextureType::TextureCube) {
         glNamedFramebufferTextureLayer(handle_, attachmentPoint, textureHandle, 0, 0);
     } else {
@@ -22,8 +22,8 @@ void OpenGLFramebufferImpl::AttachTexture(unsigned int attachmentPoint, ref<Text
 OpenGLFramebufferImpl::OpenGLFramebufferImpl(
     u32 width,
     u32 height,
-    const std::unordered_map<u32, ref<Texture>>& colorAttachments,
-    ref<Texture> depthAttachment
+    const std::unordered_map<u32, Texture*>& colorAttachments,
+    Texture* depthAttachment
 )
     : width_(width), height_(height) {
 
@@ -37,17 +37,23 @@ OpenGLFramebufferImpl::OpenGLFramebufferImpl(
     for (const auto& [index, texture] : colorAttachments) {
         const unsigned int attachmentPoint = GL_COLOR_ATTACHMENT0 + index;
         AttachTexture(attachmentPoint, texture);
-        drawBuffers. push_back(attachmentPoint);
+        drawBuffers.push_back(attachmentPoint);
     }
 
     if (! drawBuffers.empty()) {
-        glNamedFramebufferDrawBuffers(handle_, static_cast<int>(drawBuffers.size()), drawBuffers.data());
+        glNamedFramebufferDrawBuffers(handle_, static_cast<int>(drawBuffers. size()), drawBuffers.data());
     } else {
         glNamedFramebufferDrawBuffer(handle_, GL_NONE);
+        glNamedFramebufferReadBuffer(handle_, GL_NONE);
     }
 
     if (depthAttachment != nullptr) {
-        AttachTexture(GL_DEPTH_STENCIL_ATTACHMENT, depthAttachment);
+        TextureFormat format = depthAttachment->GetFormat();
+        if (format == TextureFormat::Depth24Stencil8 || format == TextureFormat::Depth32FStencil8) {
+            AttachTexture(GL_DEPTH_STENCIL_ATTACHMENT, depthAttachment);
+        } else {
+            AttachTexture(GL_DEPTH_ATTACHMENT, depthAttachment);
+        }
     }
 
     if (! CheckComplete()) {
@@ -75,7 +81,7 @@ void OpenGLFramebufferImpl::Unbind() const {
 
 bool OpenGLFramebufferImpl::CheckComplete() const {
     const unsigned int status = glCheckNamedFramebufferStatus(handle_, GL_FRAMEBUFFER);
-    
+
     if (status != GL_FRAMEBUFFER_COMPLETE) {
         const char* errorMsg = "Unknown error";
         switch (status) {
@@ -99,14 +105,14 @@ OpenGLFramebuffer::OpenGLFramebuffer(
     u32 width,
     u32 height,
     scope<FramebufferImpl> impl,
-    std::unordered_map<u32, ref<Texture>> colorTextures,
-    ref<Texture> depthTexture
+    std::unordered_map<u32, Texture*> colorTextures,
+    Texture* depthTexture
 )
     : width_(width)
     , height_(height)
     , impl_(std::move(impl))
     , colorTextures_(std::move(colorTextures))
-    , depthTexture_(std::move(depthTexture)) {}
+    , depthTexture_(depthTexture) {}
 
 OpenGLFramebuffer::~OpenGLFramebuffer() = default;
 
@@ -118,7 +124,7 @@ void OpenGLFramebuffer::Unbind() const {
     impl_->Unbind();
 }
 
-ref<Texture> OpenGLFramebuffer::GetColorTexture(u32 index) const {
+Texture* OpenGLFramebuffer::GetColorTexture(u32 index) const {
     auto it = colorTextures_.find(index);
     if (it == colorTextures_.end()) {
         return nullptr;
@@ -126,16 +132,16 @@ ref<Texture> OpenGLFramebuffer::GetColorTexture(u32 index) const {
     return it->second;
 }
 
-ref<Texture> OpenGLFramebuffer::GetDepthTexture() const {
+Texture* OpenGLFramebuffer::GetDepthTexture() const {
     return depthTexture_;
 }
 
 scope<Framebuffer> CreateOpenGLFramebuffer(
-    Device* /*device*/,
+    Device*,
     u32 width,
     u32 height,
-    const std::unordered_map<u32, ref<Texture>>& colorAttachments,
-    ref<Texture> depthAttachment
+    const std::unordered_map<u32, Texture*>& colorAttachments,
+    Texture* depthAttachment
 ) {
     auto impl = scope<FramebufferImpl>(new OpenGLFramebufferImpl(width, height, colorAttachments, depthAttachment));
     return scope<Framebuffer>(new OpenGLFramebuffer(width, height, std::move(impl), colorAttachments, depthAttachment));
@@ -153,15 +159,15 @@ public:
     void Bind() const override { glBindFramebuffer(GL_FRAMEBUFFER, 0); }
     void Unbind() const override { glBindFramebuffer(GL_FRAMEBUFFER, 0); }
 
-    ref<Texture> GetColorTexture(u32 /*index*/) const override { return nullptr; }
-    ref<Texture> GetDepthTexture() const override { return nullptr; }
+    Texture* GetColorTexture(u32) const override { return nullptr; }
+    Texture* GetDepthTexture() const override { return nullptr; }
 
 private:
     u32 width_;
     u32 height_;
 };
 
-scope<Framebuffer> CreateOpenGLDefaultFramebuffer(Device* /*device*/, u32 width, u32 height) {
+scope<Framebuffer> CreateOpenGLDefaultFramebuffer(Device*, u32 width, u32 height) {
     return scope<Framebuffer>(new OpenGLDefaultFramebuffer(width, height));
 }
 

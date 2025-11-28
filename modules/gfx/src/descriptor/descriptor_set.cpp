@@ -7,14 +7,14 @@
 
 namespace cc::gfx {
 
-DescriptorSet::Builder DescriptorSet::Create(Device* device, ref<DescriptorSetLayout> layout) {
+DescriptorSet::Builder DescriptorSet::Create(Device* device, DescriptorSetLayout* layout) {
     Builder builder;
     builder.device_ = device;
     builder.layout_ = layout;
     return builder;
 }
 
-DescriptorSet::Builder& DescriptorSet::Builder::Bind(u32 binding, ref<Buffer> buffer, u64 offset, u64 range) {
+DescriptorSet::Builder& DescriptorSet::Builder::Bind(u32 binding, Buffer* buffer, u64 offset, u64 range) {
     if (buffer == nullptr) {
         log::Warn("Attempting to bind null buffer to binding {}", binding);
         return *this;
@@ -30,7 +30,7 @@ DescriptorSet::Builder& DescriptorSet::Builder::Bind(u32 binding, ref<Buffer> bu
     return *this;
 }
 
-DescriptorSet::Builder& DescriptorSet::Builder::Bind(u32 binding, ref<Texture> texture, ref<Sampler> sampler) {
+DescriptorSet::Builder& DescriptorSet::Builder::Bind(u32 binding, Texture* texture, Sampler* sampler) {
     if (texture == nullptr) {
         log::Warn("Attempting to bind null texture to binding {}", binding);
         return *this;
@@ -59,7 +59,7 @@ scope<DescriptorSet> DescriptorSet::Builder::Build() {
     return device_->CreateDescriptorSet(layout_, bufferBindings_, textureBindings_);
 }
 
-DescriptorSet::DescriptorSet(ref<DescriptorSetLayout> layout)
+DescriptorSet::DescriptorSet(DescriptorSetLayout* layout)
     : layout_(layout) {}
 
 } // namespace cc::gfx

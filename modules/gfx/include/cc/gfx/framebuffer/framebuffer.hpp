@@ -10,17 +10,17 @@ class Framebuffer {
 public:
     class Builder {
     public:
-        Builder& AttachColor(u32 index, ref<Texture> texture);
-        Builder& AttachDepth(ref<Texture> texture);
-        Builder& AttachDepthStencil(ref<Texture> texture);
+        Builder& AttachColor(u32 index, Texture* texture);
+        Builder& AttachDepth(Texture* texture);
+        Builder& AttachDepthStencil(Texture* texture);
         scope<Framebuffer> Build();
 
     private:
         Device* device_{nullptr};
         u32 width_{0};
         u32 height_{0};
-        std::unordered_map<u32, ref<Texture>> colorAttachments_;
-        ref<Texture> depthAttachment_{nullptr};
+        std::unordered_map<u32, Texture*> colorAttachments_;
+        Texture* depthAttachment_{nullptr};
         friend class Framebuffer;
     };
 
@@ -35,8 +35,8 @@ public:
     virtual void Bind() const = 0;
     virtual void Unbind() const = 0;
 
-    virtual ref<Texture> GetColorTexture(u32 index = 0) const = 0;
-    virtual ref<Texture> GetDepthTexture() const = 0;
+    virtual Texture* GetColorTexture(u32 index = 0) const = 0;
+    virtual Texture* GetDepthTexture() const = 0;
 
 protected:
     Framebuffer() = default;

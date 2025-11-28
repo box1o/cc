@@ -10,7 +10,7 @@
 namespace cc::gfx {
 
 OpenGLDescriptorSet::OpenGLDescriptorSet(
-    ref<DescriptorSetLayout> layout,
+    DescriptorSetLayout* layout,
     std::vector<BufferBinding> bufferBindings,
     std::vector<TextureBinding> textureBindings
 )
@@ -44,7 +44,7 @@ void OpenGLDescriptorSet::BindBuffers(u32 /*setIndex*/) const {
             continue;
         }
 
-        u32 bufferHandle = binding. buffer->GetHandle();
+        u32 bufferHandle = binding.buffer->GetHandle();
 
         switch (layoutBinding->type) {
             case DescriptorType::UniformBuffer:
@@ -68,7 +68,7 @@ void OpenGLDescriptorSet::BindBuffers(u32 /*setIndex*/) const {
                 break;
 
             default:
-                log::Warn("Unsupported buffer descriptor type for binding {}", binding. binding);
+                log::Warn("Unsupported buffer descriptor type for binding {}", binding.binding);
                 break;
         }
     }
@@ -94,7 +94,7 @@ void OpenGLDescriptorSet::BindTextures(u32 /*setIndex*/) const {
     }
 }
 
-void OpenGLDescriptorSet::Update(u32 binding, ref<Buffer> buffer, u64 offset, u64 range) {
+void OpenGLDescriptorSet::Update(u32 binding, Buffer* buffer, u64 offset, u64 range) {
     for (auto& bb : bufferBindings_) {
         if (bb.binding == binding) {
             bb.buffer = buffer;
@@ -106,27 +106,27 @@ void OpenGLDescriptorSet::Update(u32 binding, ref<Buffer> buffer, u64 offset, u6
     }
 
     BufferBinding newBinding{};
-    newBinding.binding = binding;
+    newBinding. binding = binding;
     newBinding.buffer = buffer;
-    newBinding. offset = offset;
+    newBinding.offset = offset;
     newBinding.range = (range == 0 && buffer != nullptr) ? buffer->GetSize() : range;
     bufferBindings_.push_back(newBinding);
     log::Trace("DescriptorSet added buffer at binding {}", binding);
 }
 
-void OpenGLDescriptorSet::Update(u32 binding, ref<Texture> texture, ref<Sampler> sampler) {
+void OpenGLDescriptorSet::Update(u32 binding, Texture* texture, Sampler* sampler) {
     for (auto& tb : textureBindings_) {
         if (tb.binding == binding) {
             tb.texture = texture;
-            tb. sampler = sampler;
+            tb.sampler = sampler;
             log::Trace("DescriptorSet updated texture at binding {}", binding);
             return;
         }
     }
 
     TextureBinding newBinding{};
-    newBinding. binding = binding;
-    newBinding.texture = texture;
+    newBinding.binding = binding;
+    newBinding. texture = texture;
     newBinding.sampler = sampler;
     textureBindings_.push_back(newBinding);
     log::Trace("DescriptorSet added texture at binding {}", binding);
@@ -134,7 +134,7 @@ void OpenGLDescriptorSet::Update(u32 binding, ref<Texture> texture, ref<Sampler>
 
 scope<DescriptorSet> CreateOpenGLDescriptorSet(
     Device* /*device*/,
-    ref<DescriptorSetLayout> layout,
+    DescriptorSetLayout* layout,
     const std::vector<BufferBinding>& bufferBindings,
     const std::vector<TextureBinding>& textureBindings
 ) {
