@@ -59,72 +59,94 @@ ShaderReflector::~ShaderReflector() = default;
     return scope<ShaderReflector>(new ShaderReflector());
 }
 
-ShaderReflection ShaderReflector::Reflect(const std::vector<u32>& spirv, ShaderStage stage) {
+ShaderReflectionData ShaderReflector::Reflect(const std::vector<u32>& spirv, ShaderStage stage) {
     if (spirv.empty()) {
         log::Error("SPIR-V data is empty");
         throw std::runtime_error("SPIR-V data is empty");
     }
 
-    ShaderReflection reflection{};
-
-    std::vector<ShaderVertexAttribute> attributes;
-    std::vector<UniformBlock> uniformBlocks;
-    std::vector<SamplerBinding> samplers;
+    ShaderReflectionData data{};
 
     try {
         spirv_cross::Compiler compiler(spirv);
         spirv_cross::ShaderResources resources = compiler.get_shader_resources();
 
+        //NOTE: Vertex inputs
         if (stage == ShaderStage::Vertex) {
+            data.attributeNames.reserve(resources.stage_inputs.size());
+            data.attributes.reserve(resources.stage_inputs.size());
+
             for (const auto& input : resources.stage_inputs) {
+                const std::string nameStr = compiler.get_name(input.id);
+                data.attributeNames.push_back(nameStr);
+
                 ShaderVertexAttribute attr{};
                 attr.location = compiler.get_decoration(input.id, spv::DecorationLocation);
-                attr.name = input.name.c_str();
+                attr.name = data.attributeNames.back().c_str();
 
                 const auto& type = compiler.get_type(input.type_id);
                 attr.type = SPIRTypeToUniformType(type);
                 attr.size = GetUniformSize(attr.type);
 
-                attributes.push_back(attr);
+                data.attributes.push_back(attr);
             }
         }
 
-        for (const auto& ubo : resources.uniform_buffers) {
-            std::vector<UniformBlockMember> members;
-            const auto& type = compiler.get_type(ubo.type_id);
+        //NOTE: Uniform buffers
+        data.uniformBlockNames.reserve(resources.uniform_buffers.size());
+        data.uniformBlocks.reserve(resources.uniform_buffers.size());
 
-            for (u32 i = 0; i < type.member_types.size(); ++i) {
-                const auto& memberType = compiler.get_type(type.member_types[i]);
-                std::string memberName = compiler.get_member_name(ubo.type_id, i);
+        for (const auto& ubo : resources.uniform_buffers) {
+            const auto& blockType = compiler.get_type(ubo.type_id);
+
+            const std::string blockNameStr = compiler.get_name(ubo.id);
+            data.uniformBlockNames.push_back(blockNameStr);
+
+            const u32 memberBaseIndex = static_cast<u32>(data.uniformMembers.size());
+            const u32 memberCount     = static_cast<u32>(blockType.member_types.size());
+
+            data.uniformMembers.reserve(memberBaseIndex + memberCount);
+
+            for (u32 i = 0; i < memberCount; ++i) {
+                const auto& memberType  = compiler.get_type(blockType.member_types[i]);
+                const std::string mName = compiler.get_member_name(ubo.type_id, i);
+                data.uniformMemberNames.push_back(mName);
 
                 UniformBlockMember member{};
-                member.name = memberName.c_str();
-                member.type = SPIRTypeToUniformType(memberType);
-                member.offset = compiler.type_struct_member_offset(type, i);
-                member.size = GetUniformSize(member.type);
+                member.name   = data.uniformMemberNames.back().c_str();
+                member.type   = SPIRTypeToUniformType(memberType);
+                member.offset = compiler.type_struct_member_offset(blockType, i);
+                member.size   = GetUniformSize(member.type);
 
-                members.push_back(member);
+                data.uniformMembers.push_back(member);
             }
 
             UniformBlock block{};
-            block.name = ubo.name.c_str();
-            block.binding = compiler.get_decoration(ubo.id, spv::DecorationBinding);
-            block.size = static_cast<u32>(compiler.get_declared_struct_size(type));
-            block.members = members.data();
-            block.memberCount = static_cast<u32>(members.size());
+            block.name        = data.uniformBlockNames.back().c_str();
+            block.binding     = compiler.get_decoration(ubo.id, spv::DecorationBinding);
+            block.size        = static_cast<u32>(compiler.get_declared_struct_size(blockType));
+            block.members     = memberCount > 0 ? &data.uniformMembers[memberBaseIndex] : nullptr;
+            block.memberCount = memberCount;
 
-            uniformBlocks.push_back(block);
+            data.uniformBlocks.push_back(block);
         }
 
+        //NOTE: Samplers
+        data.samplerNames.reserve(resources.sampled_images.size());
+        data.samplers.reserve(resources.sampled_images.size());
+
         for (const auto& sampler : resources.sampled_images) {
+            const std::string sName = compiler.get_name(sampler.id);
+            data.samplerNames.push_back(sName);
+
             SamplerBinding binding{};
-            binding.name = sampler.name.c_str();
+            binding.name    = data.samplerNames.back().c_str();
             binding.binding = compiler.get_decoration(sampler.id, spv::DecorationBinding);
 
             const auto& type = compiler.get_type(sampler.type_id);
-            binding.type = SPIRTypeToUniformType(type);
+            binding.type     = SPIRTypeToUniformType(type);
 
-            samplers.push_back(binding);
+            data.samplers.push_back(binding);
         }
 
         const char* stageName =
@@ -137,23 +159,16 @@ ShaderReflection ShaderReflector::Reflect(const std::vector<u32>& spirv, ShaderS
                                                              "Unknown";
 
         log::Info("Shader reflection ({})", stageName);
-        log::Info("  Attributes: {}", attributes.size());
-        log::Info("  Uniform Blocks: {}", uniformBlocks.size());
-        log::Info("  Samplers: {}", samplers.size());
+        log::Info("  Attributes: {}", data.attributes.size());
+        log::Info("  Uniform Blocks: {}", data.uniformBlocks.size());
+        log::Info("  Samplers: {}", data.samplers.size());
 
     } catch (const std::exception& e) {
         log::Error("SPIR-V reflection failed: {}", e.what());
         throw std::runtime_error("SPIR-V reflection failed");
     }
 
-    reflection.attributes         = attributes.data();
-    reflection.attributeCount     = static_cast<u32>(attributes.size());
-    reflection.uniformBlocks      = uniformBlocks.data();
-    reflection.uniformBlockCount  = static_cast<u32>(uniformBlocks.size());
-    reflection.samplers           = samplers.data();
-    reflection.samplerCount       = static_cast<u32>(samplers.size());
-
-    return reflection;
+    return data;
 }
 
 } // namespace cc::gfx

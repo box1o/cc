@@ -6,11 +6,16 @@
 #include "backends/opengl/gl_shader.hpp"
 #include <stdexcept>
 #include <unordered_map>
+#include <fstream>
 
 namespace cc::gfx {
 
-//NOTE: Helper utilities are kept in anonymous namespace.
 namespace {
+
+struct StageReflectionStorage {
+    ShaderReflectionData data;
+    ShaderReflection view;
+};
 
 [[nodiscard]] std::vector<std::pair<ShaderStage, std::filesystem::path>>
 BuildFileStageList(const std::vector<Shader::Builder::StageInfo>& stages) {
@@ -51,9 +56,9 @@ BuildStageMetadata(const std::vector<Shader::Builder::StageInfo>& stages) {
     for (const auto& info : stages) {
         Shader::StageSource s{};
         s.stage = info.stage;
-        s.name = !info.name.empty()
-               ? info.name
-               : (info.isFile ? info.filepath.filename().string() : std::string("shader"));
+        s.name  = !info.name.empty()
+                ? info.name
+                : (info.isFile ? info.filepath.filename().string() : std::string("shader"));
         if (!info.isFile) {
             s.source = info.source;
         }
@@ -72,23 +77,84 @@ BuildStageMetadata(const std::vector<Shader::Builder::StageInfo>& stages) {
     return true;
 }
 
-//NOTE: Placeholder for future reflection wiring – currently returns empty.
-[[nodiscard]] std::unordered_map<ShaderStage, ShaderReflection>
-BuildReflectionsIfEnabled(
-    bool enableReflection,
-    const std::vector<Shader::Builder::StageInfo>& /*stages*/
+[[nodiscard]] std::unordered_map<ShaderStage, StageReflectionStorage>
+BuildReflections(
+    const std::vector<Shader::Builder::StageInfo>& stages
 ) {
-    if (!enableReflection) {
-        return {};
+    std::unordered_map<ShaderStage, StageReflectionStorage> reflections;
+
+    auto compiler  = ShaderCompiler::Create();
+    auto reflector = ShaderReflector::Create();
+
+    for (const auto& info : stages) {
+        std::string source;
+        std::string name;
+
+        if (info.isFile) {
+            std::filesystem::path path = info.filepath;
+            if (!std::filesystem::exists(path)) {
+                log::Error("Reflection: shader file not found: {}", path.string());
+                continue;
+            }
+
+            std::ifstream file(path, std::ios::in | std::ios::binary);
+            if (!file.is_open()) {
+                log::Error("Reflection: failed to open shader file: {}", path.string());
+                continue;
+            }
+
+            std::stringstream buffer;
+            buffer << file.rdbuf();
+            source = buffer.str();
+            name   = path.filename().string();
+        } else {
+            source = info.source;
+            name   = info.name.empty() ? "shader" : info.name;
+        }
+
+        if (source.empty()) {
+            log::Warn("Reflection: empty source for stage {}, skipping", static_cast<int>(info.stage));
+            continue;
+        }
+
+        std::vector<u32> spirv;
+        try {
+            ShaderCompileOptions opts{};
+            opts.optimize        = false;
+            opts.debugInfo       = true;
+            opts.warningsAsErrors = false;
+
+            spirv = compiler->CompileSource(source, name, info.stage, opts);
+        } catch (const std::exception& e) {
+            log::Error("Reflection: compile failed for '{}' (stage {}): {}",
+                       name, static_cast<int>(info.stage), e.what());
+            continue;
+        }
+
+        try {
+            StageReflectionStorage storage{};
+            storage.data = reflector->Reflect(spirv, info.stage);
+            storage.view = storage.data.AsView();
+            reflections.emplace(info.stage, std::move(storage));
+        } catch (const std::exception& e) {
+            log::Error("Reflection: SPIR-V reflection failed for '{}' (stage {}): {}",
+                       name, static_cast<int>(info.stage), e.what());
+        }
     }
 
-    //NOTE: Proper implementation would:
-    // 1. Use ShaderCompiler to compile GLSL to SPIR-V per stage.
-    // 2. Use ShaderReflector to produce ShaderReflection per stage.
-    // 3. Store reflections in the returned map.
-    //For now we return an empty map to avoid incorrect lifetime issues.
-    log::Warn("Shader reflection requested but not yet implemented; returning empty reflection data");
-    return {};
+    return reflections;
+}
+
+[[nodiscard]] std::unordered_map<ShaderStage, ShaderReflection>
+ExtractReflectionViews(std::unordered_map<ShaderStage, StageReflectionStorage>& storage) {
+    std::unordered_map<ShaderStage, ShaderReflection> views;
+    views.reserve(storage.size());
+
+    for (auto& [stage, s] : storage) {
+        views.emplace(stage, s.view);
+    }
+
+    return views;
 }
 
 } // anonymous namespace
@@ -101,10 +167,10 @@ BuildReflectionsIfEnabled(
 
 Shader::Builder& Shader::Builder::AddStage(ShaderStage stage, const std::filesystem::path& filepath) {
     StageInfo info{};
-    info.stage = stage;
+    info.stage    = stage;
     info.filepath = filepath;
-    info.name = filepath.filename().string();
-    info.isFile = true;
+    info.name     = filepath.filename().string();
+    info.isFile   = true;
 
     stages_.push_back(std::move(info));
 
@@ -150,22 +216,27 @@ Shader::Builder& Shader::Builder::EnableCache(bool enable) {
         throw std::runtime_error("Device is null");
     }
 
+    std::unordered_map<ShaderStage, StageReflectionStorage> reflectionStorage;
+    if (enableReflection_) {
+        reflectionStorage = BuildReflections(stages_);
+    }
+
+    auto stageMeta = BuildStageMetadata(stages_);
+
     switch (device_->GetBackend()) {
         case Backend::OpenGL: {
             const bool allFiles = AllStagesAreFiles(stages_);
-            auto reflections = BuildReflectionsIfEnabled(enableReflection_, stages_);
-            auto stageMeta   = BuildStageMetadata(stages_);
 
             if (allFiles && !enableCache_) {
-                //NOTE: Fast path – let GL backend handle file loading.
                 auto fileStages = BuildFileStageList(stages_);
-                auto shader = CreateOpenGLShader(device_, fileStages);
+                auto shader     = CreateOpenGLShader(device_, fileStages);
                 shader->stages_ = std::move(stageMeta);
-                //NOTE: Reflections currently empty; wiring will be added later.
+                if (enableReflection_) {
+                    shader->reflections_ = ExtractReflectionViews(reflectionStorage);
+                }
                 return shader;
             }
 
-            //NOTE: Unified path – either we have in-memory stages or we want full source available.
             auto unifiedSources = BuildUnifiedSourceStageList(stages_);
 
             if (enableCache_) {
@@ -177,7 +248,7 @@ Shader::Builder& Shader::Builder::EnableCache(bool enable) {
             shader->stages_.clear();
             shader->stages_.reserve(unifiedSources.size());
             for (size_t i = 0; i < unifiedSources.size(); ++i) {
-                Shader::StageSource s{};
+                StageSource s{};
                 s.stage  = unifiedSources[i].first;
                 s.source = unifiedSources[i].second;
                 s.name   = (i < stageMeta.size() && !stageMeta[i].name.empty())
@@ -185,7 +256,11 @@ Shader::Builder& Shader::Builder::EnableCache(bool enable) {
                          : std::string("shader");
                 shader->stages_.push_back(std::move(s));
             }
-            //NOTE: Reflections currently empty; wiring will be added later.
+
+            if (enableReflection_) {
+                shader->reflections_ = ExtractReflectionViews(reflectionStorage);
+            }
+
             return shader;
         }
         case Backend::Vulkan:

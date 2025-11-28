@@ -34,6 +34,16 @@ PassBuilder& PassBuilder::SetDepthClear(const ClearValue& clearValue) {
     return *this;
 }
 
+PassBuilder& PassBuilder::SetClearColor(f32 r, f32 g, f32 b, f32 a) {
+    pass_->colorClear_ = ClearValue::Color(r, g, b, a);
+    return *this;
+}
+
+PassBuilder& PassBuilder::SetClearDepth(f32 depth, u32 stencil) {
+    pass_->depthClear_ = ClearValue::Depth(depth, stencil);
+    return *this;
+}
+
 PassBuilder& PassBuilder::Read(Texture* texture, ResourceState state) {
     return Read(ResourceHandle(texture), state);
 }
@@ -71,6 +81,10 @@ PassBuilder& PassBuilder::Write(const ResourceHandle& handle, ResourceState stat
     pass_->outputs_.push_back(access);
 
     return *this;
+}
+
+PassBuilder& PassBuilder::WriteBackbuffer(ResourceState state) {
+    return Write(ResourceHandle::Backbuffer(), state);
 }
 
 PassBuilder& PassBuilder::Execute(PassExecuteCallback callback) {

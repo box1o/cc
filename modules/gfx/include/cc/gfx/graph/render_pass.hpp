@@ -52,6 +52,10 @@ public:
     PassBuilder& SetColorClear(const ClearValue& clearValue);
     PassBuilder& SetDepthClear(const ClearValue& clearValue);
 
+    //NOTE: Convenience helpers
+    PassBuilder& SetClearColor(f32 r, f32 g, f32 b, f32 a = 1.0f);
+    PassBuilder& SetClearDepth(f32 depth = 1.0f, u32 stencil = 0);
+
     PassBuilder& Read(Texture* texture, ResourceState state = ResourceState::ShaderRead);
     PassBuilder& Read(Buffer* buffer, ResourceState state = ResourceState::ShaderRead);
     PassBuilder& Read(const ResourceHandle& handle, ResourceState state = ResourceState::ShaderRead);
@@ -59,6 +63,9 @@ public:
     PassBuilder& Write(Texture* texture, ResourceState state = ResourceState::ColorWrite);
     PassBuilder& Write(Buffer* buffer, ResourceState state = ResourceState::TransferDst);
     PassBuilder& Write(const ResourceHandle& handle, ResourceState state = ResourceState::ColorWrite);
+
+    //NOTE: Backbuffer helper
+    PassBuilder& WriteBackbuffer(ResourceState state = ResourceState::ColorWrite);
 
     PassBuilder& Execute(PassExecuteCallback callback);
 
