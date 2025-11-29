@@ -6,7 +6,7 @@ layout(std140, binding = 0) uniform SkyboxUniforms {
     mat4 viewProjection;
 };
 
-out vec3 vTexCoords;
+layout(location = 0) out vec3 vTexCoords;
 
 void main() {
     vTexCoords = aPosition;

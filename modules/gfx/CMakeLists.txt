@@ -39,6 +39,7 @@ add_module(gfx
         spirv-cross-hlsl 
         spirv-cross-msl 
         spirv-cross-reflect
+        tinygltf
 )
 
 target_include_directories(cc_gfx

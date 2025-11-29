@@ -14,6 +14,12 @@ find_or_fetch_package(glfw
     GIT_REPOSITORY https://github.com/glfw/glfw.git
 )
 
+
+find_or_fetch_package(tinygltf
+    GIT_REPOSITORY https://github.com/syoyo/tinygltf.git
+    GIT_TAG release
+)
+
 add_subdirectory(glad)
 add_subdirectory(stb)
 
