@@ -29,9 +29,12 @@
 
 namespace cc {
 
-template<arithmetic T = std::uint32_t> using vec2 = vec<2, T>;
-template<arithmetic T = std::uint32_t> using vec3 = vec<3, T>;
-template<arithmetic T = std::uint32_t> using vec4 = vec<4, T>;
+template<arithmetic T = std::uint32_t>
+using vec2 = vec<2, T>;
+template<arithmetic T = std::uint32_t>
+using vec3 = vec<3, T>;
+template<arithmetic T = std::uint32_t>
+using vec4 = vec<4, T>;
 
 using vec2f = vec2<float>;
 using vec3f = vec3<float>;
@@ -49,19 +52,21 @@ using vec2u = vec2<unsigned>;
 using vec3u = vec3<unsigned>;
 using vec4u = vec4<unsigned>;
 
-template<arithmetic T = float> using mat2 = mat<2, 2, T>;
-template<arithmetic T = float> using mat3 = mat<3, 3, T>;
-template<arithmetic T = float> using mat4 = mat<4, 4, T>;
+template<arithmetic T = float>
+using mat2 = mat<2, 2, T>;
+template<arithmetic T = float>
+using mat3_t = mat<3, 3, T>;
+template<arithmetic T = float>
+using mat4_t = mat<4, 4, T>;
 
 using mat2f = mat2<float>;
-using mat3f = mat3<float>;
-using mat4f = mat4<float>;
+using mat3f = mat3_t<float>;
+using mat4f = mat4_t<float>;
 
 using mat2d = mat2<double>;
-using mat3d = mat3<double>;
-using mat4d = mat4<double>;
+using mat3d = mat3_t<double>;
+using mat4d = mat4_t<double>;
 
-//NOTE: quaternion aliases
 using quatf = quat<float>;
 using quatd = quat<double>;
 

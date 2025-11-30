@@ -3,9 +3,11 @@
 #include "../detail/arithmetic.hpp"
 #include "../common/functions.hpp"
 #include "../common/constants.hpp"
+
 #include <array>
-#include <cstddef>
 #include <cassert>
+#include <cstddef>
+#include <type_traits>
 
 namespace cc {
 
@@ -30,7 +32,7 @@ public:
     }
 
     template<arithmetic... Args>
-    requires(sizeof...(Args) == Rows * Cols)
+    requires (sizeof...(Args) == Rows * Cols)
     constexpr mat(layout order, Args... args) noexcept {
         T temp[] = {static_cast<T>(args)...};
         if (order == layout::colm) {
@@ -66,32 +68,32 @@ public:
         return result;
     }
 
-    constexpr T& operator()(std::size_t r, std::size_t c) noexcept {
+    [[nodiscard]] constexpr T& operator()(std::size_t r, std::size_t c) noexcept {
         assert(r < Rows && c < Cols);
         return data_[c][r];
     }
 
-    constexpr const T& operator()(std::size_t r, std::size_t c) const noexcept {
+    [[nodiscard]] constexpr const T& operator()(std::size_t r, std::size_t c) const noexcept {
         assert(r < Rows && c < Cols);
         return data_[c][r];
     }
 
-    constexpr col_type& operator[](std::size_t col) noexcept {
+    [[nodiscard]] constexpr col_type& operator[](std::size_t col) noexcept {
         assert(col < Cols);
         return data_[col];
     }
 
-    constexpr const col_type& operator[](std::size_t col) const noexcept {
+    [[nodiscard]] constexpr const col_type& operator[](std::size_t col) const noexcept {
         assert(col < Cols);
         return data_[col];
     }
 
-    constexpr col_type& col(std::size_t j) noexcept {
+    [[nodiscard]] constexpr col_type& col(std::size_t j) noexcept {
         assert(j < Cols);
         return data_[j];
     }
 
-    constexpr const col_type& col(std::size_t j) const noexcept {
+    [[nodiscard]] constexpr const col_type& col(std::size_t j) const noexcept {
         assert(j < Cols);
         return data_[j];
     }
@@ -101,7 +103,7 @@ public:
         data_[j] = c;
     }
 
-    constexpr row_type row(std::size_t i) const noexcept {
+    [[nodiscard]] constexpr row_type row(std::size_t i) const noexcept {
         assert(i < Rows);
         row_type r{};
         for (std::size_t j = 0; j < Cols; ++j) {
@@ -117,12 +119,12 @@ public:
         }
     }
 
-    constexpr T* data() noexcept { 
-        return &data_[0][0]; 
+    [[nodiscard]] constexpr T* data() noexcept {
+        return &data_[0][0];
     }
 
-    constexpr const T* data() const noexcept { 
-        return &data_[0][0]; 
+    [[nodiscard]] constexpr const T* data() const noexcept {
+        return &data_[0][0];
     }
 
     constexpr mat& operator+=(const mat& rhs) noexcept {
@@ -162,32 +164,32 @@ public:
         return *this;
     }
 
-    friend constexpr mat operator+(mat a, const mat& b) noexcept { 
-        a += b; 
-        return a; 
+    [[nodiscard]] friend constexpr mat operator+(mat a, const mat& b) noexcept {
+        a += b;
+        return a;
     }
 
-    friend constexpr mat operator-(mat a, const mat& b) noexcept { 
-        a -= b; 
-        return a; 
+    [[nodiscard]] friend constexpr mat operator-(mat a, const mat& b) noexcept {
+        a -= b;
+        return a;
     }
 
-    friend constexpr mat operator*(mat a, T s) noexcept { 
-        a *= s; 
-        return a; 
+    [[nodiscard]] friend constexpr mat operator*(mat a, T s) noexcept {
+        a *= s;
+        return a;
     }
 
-    friend constexpr mat operator*(T s, mat a) noexcept { 
-        a *= s; 
-        return a; 
+    [[nodiscard]] friend constexpr mat operator*(T s, mat a) noexcept {
+        a *= s;
+        return a;
     }
 
-    friend constexpr mat operator/(mat a, T s) noexcept { 
-        a /= s; 
-        return a; 
+    [[nodiscard]] friend constexpr mat operator/(mat a, T s) noexcept {
+        a /= s;
+        return a;
     }
 
-    constexpr mat<Cols, Rows, T> transpose() const noexcept {
+    [[nodiscard]] constexpr mat<Cols, Rows, T> transpose() const noexcept {
         mat<Cols, Rows, T> r{};
         for (std::size_t i = 0; i < Rows; ++i) {
             for (std::size_t j = 0; j < Cols; ++j) {
@@ -197,17 +199,25 @@ public:
         return r;
     }
 
-    friend constexpr bool operator==(const mat& a, const mat& b) noexcept {
+    [[nodiscard]] friend constexpr bool operator==(const mat& a, const mat& b) noexcept {
         for (std::size_t j = 0; j < Cols; ++j) {
             for (std::size_t i = 0; i < Rows; ++i) {
                 if constexpr (floating_point<T>) {
-                    if (!approx_equal(a.data_[j][i], b.data_[j][i])) return false;
+                    if (!approx_equal(a.data_[j][i], b.data_[j][i])) {
+                        return false;
+                    }
                 } else {
-                    if (a.data_[j][i] != b.data_[j][i]) return false;
+                    if (a.data_[j][i] != b.data_[j][i]) {
+                        return false;
+                    }
                 }
             }
         }
         return true;
+    }
+
+    [[nodiscard]] constexpr bool operator!=(const mat& other) const noexcept {
+        return !(*this == other);
     }
 
 private:
@@ -215,7 +225,7 @@ private:
 };
 
 template<std::size_t R, std::size_t C, std::size_t K, arithmetic T>
-constexpr mat<R, K, T> operator*(const mat<R, C, T>& a, const mat<C, K, T>& b) noexcept {
+[[nodiscard]] constexpr mat<R, K, T> operator*(const mat<R, C, T>& a, const mat<C, K, T>& b) noexcept {
     mat<R, K, T> r{};
     for (std::size_t i = 0; i < R; ++i) {
         for (std::size_t k = 0; k < K; ++k) {
@@ -230,7 +240,7 @@ constexpr mat<R, K, T> operator*(const mat<R, C, T>& a, const mat<C, K, T>& b) n
 }
 
 template<std::size_t N, arithmetic T>
-constexpr T det(const mat<N, N, T>& m) noexcept {
+[[nodiscard]] constexpr T det(const mat<N, N, T>& m) noexcept {
     mat<N, N, T> a(m);
     T d = T{1};
     int sign = 1;
@@ -239,18 +249,20 @@ constexpr T det(const mat<N, N, T>& m) noexcept {
         std::size_t pivot = i;
         T maxv = abs(a(i, i));
         for (std::size_t r = i + 1; r < N; ++r) {
-            T v = abs(a(r, i));
-            if (v > maxv) { 
-                maxv = v; 
-                pivot = r; 
+            const T v = abs(a(r, i));
+            if (v > maxv) {
+                maxv = v;
+                pivot = r;
             }
         }
 
-        if (maxv == T{}) return T{0};
+        if (maxv == T{}) {
+            return T{0};
+        }
 
         if (pivot != i) {
             for (std::size_t c = 0; c < N; ++c) {
-                T tmp = a(i, c);
+                const T tmp = a(i, c);
                 a(i, c) = a(pivot, c);
                 a(pivot, c) = tmp;
             }
@@ -258,19 +270,20 @@ constexpr T det(const mat<N, N, T>& m) noexcept {
         }
 
         d *= a(i, i);
-        T piv = a(i, i);
+        const T piv = a(i, i);
         for (std::size_t r = i + 1; r < N; ++r) {
-            T f = a(r, i) / piv;
+            const T f = a(r, i) / piv;
             for (std::size_t c = i; c < N; ++c) {
                 a(r, c) -= f * a(i, c);
             }
         }
     }
+
     return sign == 1 ? d : -d;
 }
 
 template<std::size_t N, floating_point T>
-inline mat<N, N, T> inverse(const mat<N, N, T>& m) noexcept {
+[[nodiscard]] inline mat<N, N, T> inverse(const mat<N, N, T>& m) noexcept {
     mat<N, N, T> a(m);
     mat<N, N, T> inv = mat<N, N, T>::identity();
 
@@ -278,10 +291,10 @@ inline mat<N, N, T> inverse(const mat<N, N, T>& m) noexcept {
         std::size_t pivot = i;
         T maxv = abs(a(i, i));
         for (std::size_t r = i + 1; r < N; ++r) {
-            T v = abs(a(r, i));
-            if (v > maxv) { 
-                maxv = v; 
-                pivot = r; 
+            const T v = abs(a(r, i));
+            if (v > maxv) {
+                maxv = v;
+                pivot = r;
             }
         }
 
@@ -291,17 +304,17 @@ inline mat<N, N, T> inverse(const mat<N, N, T>& m) noexcept {
 
         if (pivot != i) {
             for (std::size_t c = 0; c < N; ++c) {
-                T tmp_a = a(i, c);
+                const T tmp_a = a(i, c);
                 a(i, c) = a(pivot, c);
                 a(pivot, c) = tmp_a;
 
-                T tmp_inv = inv(i, c);
+                const T tmp_inv = inv(i, c);
                 inv(i, c) = inv(pivot, c);
                 inv(pivot, c) = tmp_inv;
             }
         }
 
-        T piv = a(i, i);
+        const T piv = a(i, i);
         for (std::size_t c = 0; c < N; ++c) {
             a(i, c) /= piv;
             inv(i, c) /= piv;
@@ -309,14 +322,18 @@ inline mat<N, N, T> inverse(const mat<N, N, T>& m) noexcept {
 
         for (std::size_t r = 0; r < N; ++r) {
             if (r == i) continue;
-            T f = a(r, i);
+            const T f = a(r, i);
             for (std::size_t c = 0; c < N; ++c) {
                 a(r, c) -= f * a(i, c);
                 inv(r, c) -= f * inv(i, c);
             }
         }
     }
+
     return inv;
 }
 
-}
+static_assert(std::is_trivially_copyable_v<mat<3, 3, float>>);
+static_assert(std::is_trivially_copyable_v<mat<4, 4, float>>);
+
+} // namespace cc

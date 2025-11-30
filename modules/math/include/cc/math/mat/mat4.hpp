@@ -3,8 +3,10 @@
 #include "fwd.hpp"
 #include "../detail/arithmetic.hpp"
 #include "../common/functions.hpp"
+
 #include <array>
 #include <cassert>
+#include <cstddef>
 
 namespace cc {
 
@@ -26,12 +28,17 @@ public:
         std::array<col_type, 4> data_;
     };
 
-    constexpr mat() : data_{col_type{T{}, T{}, T{}, T{}}, col_type{T{}, T{}, T{}, T{}}, 
-                            col_type{T{}, T{}, T{}, T{}}, col_type{T{}, T{}, T{}, T{}}} {}
+    constexpr mat() noexcept
+        : data_{col_type{T{}, T{}, T{}, T{}},
+                col_type{T{}, T{}, T{}, T{}},
+                col_type{T{}, T{}, T{}, T{}},
+                col_type{T{}, T{}, T{}, T{}}} {}
 
-    explicit constexpr mat(T value) noexcept 
-        : data_{col_type{value, value, value, value}, col_type{value, value, value, value}, 
-                col_type{value, value, value, value}, col_type{value, value, value, value}} {}
+    explicit constexpr mat(T value) noexcept
+        : data_{col_type{value, value, value, value},
+                col_type{value, value, value, value},
+                col_type{value, value, value, value},
+                col_type{value, value, value, value}} {}
 
     constexpr mat(layout order,
                   T v0,  T v1,  T v2,  T v3,
@@ -60,37 +67,41 @@ public:
         }
     }
 
-    static constexpr mat identity() noexcept {
+    [[nodiscard]] static constexpr mat identity() noexcept {
         return mat(layout::rowm,
-            T{1}, T{0}, T{0}, T{0},
-            T{0}, T{1}, T{0}, T{0},
-            T{0}, T{0}, T{1}, T{0},
-            T{0}, T{0}, T{0}, T{1}
-        );
+                   T{1}, T{0}, T{0}, T{0},
+                   T{0}, T{1}, T{0}, T{0},
+                   T{0}, T{0}, T{1}, T{0},
+                   T{0}, T{0}, T{0}, T{1});
     }
 
-    constexpr T& operator()(std::size_t r, std::size_t c) noexcept {
+    [[nodiscard]] constexpr T& operator()(std::size_t r, std::size_t c) noexcept {
         assert(r < 4 && c < 4);
         return data_[c][r];
     }
 
-    constexpr const T& operator()(std::size_t r, std::size_t c) const noexcept {
+    [[nodiscard]] constexpr const T& operator()(std::size_t r, std::size_t c) const noexcept {
         assert(r < 4 && c < 4);
         return data_[c][r];
     }
 
-    constexpr col_type& operator[](std::size_t col) noexcept {
+    [[nodiscard]] constexpr col_type& operator[](std::size_t col) noexcept {
         assert(col < 4);
         return data_[col];
     }
 
-    constexpr const col_type& operator[](std::size_t col) const noexcept {
+    [[nodiscard]] constexpr const col_type& operator[](std::size_t col) const noexcept {
         assert(col < 4);
         return data_[col];
     }
 
-    constexpr T* data() noexcept { return &data_[0][0]; }
-    constexpr const T* data() const noexcept { return &data_[0][0]; }
+    [[nodiscard]] constexpr T* data() noexcept {
+        return &data_[0][0];
+    }
+
+    [[nodiscard]] constexpr const T* data() const noexcept {
+        return &data_[0][0];
+    }
 
     constexpr mat& operator+=(const mat& rhs) noexcept {
         m00 += rhs.m00; m01 += rhs.m01; m02 += rhs.m02; m03 += rhs.m03;
@@ -125,70 +136,72 @@ public:
         return *this;
     }
 
-    friend constexpr mat operator+(mat a, const mat& b) noexcept {
+    [[nodiscard]] friend constexpr mat operator+(mat a, const mat& b) noexcept {
         a += b;
         return a;
     }
 
-    friend constexpr mat operator-(mat a, const mat& b) noexcept {
+    [[nodiscard]] friend constexpr mat operator-(mat a, const mat& b) noexcept {
         a -= b;
         return a;
     }
 
-    friend constexpr mat operator*(mat a, T s) noexcept {
+    [[nodiscard]] friend constexpr mat operator*(mat a, T s) noexcept {
         a *= s;
         return a;
     }
 
-    friend constexpr mat operator*(T s, mat a) noexcept {
+    [[nodiscard]] friend constexpr mat operator*(T s, mat a) noexcept {
         a *= s;
         return a;
     }
 
-    friend constexpr mat operator/(mat a, T s) noexcept {
+    [[nodiscard]] friend constexpr mat operator/(mat a, T s) noexcept {
         a /= s;
         return a;
     }
 
-    friend constexpr mat operator*(const mat& a, const mat& b) noexcept {
+    [[nodiscard]] friend constexpr mat operator*(const mat& a, const mat& b) noexcept {
         return mat(layout::rowm,
-            a.m00 * b.m00 + a.m01 * b.m10 + a.m02 * b.m20 + a.m03 * b.m30,
-            a.m00 * b.m01 + a.m01 * b.m11 + a.m02 * b.m21 + a.m03 * b.m31,
-            a.m00 * b.m02 + a.m01 * b.m12 + a.m02 * b.m22 + a.m03 * b.m32,
-            a.m00 * b.m03 + a.m01 * b.m13 + a.m02 * b.m23 + a.m03 * b.m33,
+                   a.m00 * b.m00 + a.m01 * b.m10 + a.m02 * b.m20 + a.m03 * b.m30,
+                   a.m00 * b.m01 + a.m01 * b.m11 + a.m02 * b.m21 + a.m03 * b.m31,
+                   a.m00 * b.m02 + a.m01 * b.m12 + a.m02 * b.m22 + a.m03 * b.m32,
+                   a.m00 * b.m03 + a.m01 * b.m13 + a.m02 * b.m23 + a.m03 * b.m33,
 
-            a.m10 * b.m00 + a.m11 * b.m10 + a.m12 * b.m20 + a.m13 * b.m30,
-            a.m10 * b.m01 + a.m11 * b.m11 + a.m12 * b.m21 + a.m13 * b.m31,
-            a.m10 * b.m02 + a.m11 * b.m12 + a.m12 * b.m22 + a.m13 * b.m32,
-            a.m10 * b.m03 + a.m11 * b.m13 + a.m12 * b.m23 + a.m13 * b.m33,
+                   a.m10 * b.m00 + a.m11 * b.m10 + a.m12 * b.m20 + a.m13 * b.m30,
+                   a.m10 * b.m01 + a.m11 * b.m11 + a.m12 * b.m21 + a.m13 * b.m31,
+                   a.m10 * b.m02 + a.m11 * b.m12 + a.m12 * b.m22 + a.m13 * b.m32,
+                   a.m10 * b.m03 + a.m11 * b.m13 + a.m12 * b.m23 + a.m13 * b.m33,
 
-            a.m20 * b.m00 + a.m21 * b.m10 + a.m22 * b.m20 + a.m23 * b.m30,
-            a.m20 * b.m01 + a.m21 * b.m11 + a.m22 * b.m21 + a.m23 * b.m31,
-            a.m20 * b.m02 + a.m21 * b.m12 + a.m22 * b.m22 + a.m23 * b.m32,
-            a.m20 * b.m03 + a.m21 * b.m13 + a.m22 * b.m23 + a.m23 * b.m33,
+                   a.m20 * b.m00 + a.m21 * b.m10 + a.m22 * b.m20 + a.m23 * b.m30,
+                   a.m20 * b.m01 + a.m21 * b.m11 + a.m22 * b.m21 + a.m23 * b.m31,
+                   a.m20 * b.m02 + a.m21 * b.m12 + a.m22 * b.m22 + a.m23 * b.m32,
+                   a.m20 * b.m03 + a.m21 * b.m13 + a.m22 * b.m23 + a.m23 * b.m33,
 
-            a.m30 * b.m00 + a.m31 * b.m10 + a.m32 * b.m20 + a.m33 * b.m30,
-            a.m30 * b.m01 + a.m31 * b.m11 + a.m32 * b.m21 + a.m33 * b.m31,
-            a.m30 * b.m02 + a.m31 * b.m12 + a.m32 * b.m22 + a.m33 * b.m32,
-            a.m30 * b.m03 + a.m31 * b.m13 + a.m32 * b.m23 + a.m33 * b.m33
-        );
+                   a.m30 * b.m00 + a.m31 * b.m10 + a.m32 * b.m20 + a.m33 * b.m30,
+                   a.m30 * b.m01 + a.m31 * b.m11 + a.m32 * b.m21 + a.m33 * b.m31,
+                   a.m30 * b.m02 + a.m31 * b.m12 + a.m32 * b.m22 + a.m33 * b.m32,
+                   a.m30 * b.m03 + a.m31 * b.m13 + a.m32 * b.m23 + a.m33 * b.m33);
     }
 
-    constexpr mat transpose() const noexcept {
+    [[nodiscard]] constexpr mat transpose() const noexcept {
         return mat(layout::colm,
-            m00, m10, m20, m30,
-            m01, m11, m21, m31,
-            m02, m12, m22, m32,
-            m03, m13, m23, m33
-        );
+                   m00, m10, m20, m30,
+                   m01, m11, m21, m31,
+                   m02, m12, m22, m32,
+                   m03, m13, m23, m33);
     }
 
-    friend constexpr bool operator==(const mat& a, const mat& b) noexcept {
+    [[nodiscard]] friend constexpr bool operator==(const mat& a, const mat& b) noexcept {
         if constexpr (floating_point<T>) {
-            return approx_equal(a.m00, b.m00) && approx_equal(a.m01, b.m01) && approx_equal(a.m02, b.m02) && approx_equal(a.m03, b.m03) &&
-                   approx_equal(a.m10, b.m10) && approx_equal(a.m11, b.m11) && approx_equal(a.m12, b.m12) && approx_equal(a.m13, b.m13) &&
-                   approx_equal(a.m20, b.m20) && approx_equal(a.m21, b.m21) && approx_equal(a.m22, b.m22) && approx_equal(a.m23, b.m23) &&
-                   approx_equal(a.m30, b.m30) && approx_equal(a.m31, b.m31) && approx_equal(a.m32, b.m32) && approx_equal(a.m33, b.m33);
+            return approx_equal(a.m00, b.m00) && approx_equal(a.m01, b.m01) &&
+                   approx_equal(a.m02, b.m02) && approx_equal(a.m03, b.m03) &&
+                   approx_equal(a.m10, b.m10) && approx_equal(a.m11, b.m11) &&
+                   approx_equal(a.m12, b.m12) && approx_equal(a.m13, b.m13) &&
+                   approx_equal(a.m20, b.m20) && approx_equal(a.m21, b.m21) &&
+                   approx_equal(a.m22, b.m22) && approx_equal(a.m23, b.m23) &&
+                   approx_equal(a.m30, b.m30) && approx_equal(a.m31, b.m31) &&
+                   approx_equal(a.m32, b.m32) && approx_equal(a.m33, b.m33);
         }
         return a.m00 == b.m00 && a.m01 == b.m01 && a.m02 == b.m02 && a.m03 == b.m03 &&
                a.m10 == b.m10 && a.m11 == b.m11 && a.m12 == b.m12 && a.m13 == b.m13 &&
@@ -196,65 +209,70 @@ public:
                a.m30 == b.m30 && a.m31 == b.m31 && a.m32 == b.m32 && a.m33 == b.m33;
     }
 
-    constexpr T det() const noexcept {
-        T a0 = m00 * m11 - m01 * m10;
-        T a1 = m00 * m12 - m02 * m10;
-        T a2 = m00 * m13 - m03 * m10;
-        T a3 = m01 * m12 - m02 * m11;
-        T a4 = m01 * m13 - m03 * m11;
-        T a5 = m02 * m13 - m03 * m12;
-        T b0 = m20 * m31 - m21 * m30;
-        T b1 = m20 * m32 - m22 * m30;
-        T b2 = m20 * m33 - m23 * m30;
-        T b3 = m21 * m32 - m22 * m31;
-        T b4 = m21 * m33 - m23 * m31;
-        T b5 = m22 * m33 - m23 * m32;
-
-        return a0 * b5 - a1 * b4 + a2 * b3 + a3 * b2 - a4 * b1 + a5 * b0;
+    [[nodiscard]] constexpr bool operator!=(const mat& other) const noexcept {
+        return !(*this == other);
     }
 
-    mat inverse() const noexcept requires floating_point<T> {
-        T a0 = m00 * m11 - m01 * m10;
-        T a1 = m00 * m12 - m02 * m10;
-        T a2 = m00 * m13 - m03 * m10;
-        T a3 = m01 * m12 - m02 * m11;
-        T a4 = m01 * m13 - m03 * m11;
-        T a5 = m02 * m13 - m03 * m12;
-        T b0 = m20 * m31 - m21 * m30;
-        T b1 = m20 * m32 - m22 * m30;
-        T b2 = m20 * m33 - m23 * m30;
-        T b3 = m21 * m32 - m22 * m31;
-        T b4 = m21 * m33 - m23 * m31;
-        T b5 = m22 * m33 - m23 * m32;
+    [[nodiscard]] constexpr T det() const noexcept {
+        const T a0 = m00 * m11 - m01 * m10;
+        const T a1 = m00 * m12 - m02 * m10;
+        const T a2 = m00 * m13 - m03 * m10;
+        const T a3 = m01 * m12 - m02 * m11;
+        const T a4 = m01 * m13 - m03 * m11;
+        const T a5 = m02 * m13 - m03 * m12;
+        const T b0 = m20 * m31 - m21 * m30;
+        const T b1 = m20 * m32 - m22 * m30;
+        const T b2 = m20 * m33 - m23 * m30;
+        const T b3 = m21 * m32 - m22 * m31;
+        const T b4 = m21 * m33 - m23 * m31;
+        const T b5 = m22 * m33 - m23 * m32;
 
-        T d = a0 * b5 - a1 * b4 + a2 * b3 + a3 * b2 - a4 * b1 + a5 * b0;
+        return a0 * b5 - a1 * b4 + a2 * b3 +
+               a3 * b2 - a4 * b1 + a5 * b0;
+    }
+
+    [[nodiscard]] mat inverse() const noexcept requires floating_point<T> {
+        const T a0 = m00 * m11 - m01 * m10;
+        const T a1 = m00 * m12 - m02 * m10;
+        const T a2 = m00 * m13 - m03 * m10;
+        const T a3 = m01 * m12 - m02 * m11;
+        const T a4 = m01 * m13 - m03 * m11;
+        const T a5 = m02 * m13 - m03 * m12;
+        const T b0 = m20 * m31 - m21 * m30;
+        const T b1 = m20 * m32 - m22 * m30;
+        const T b2 = m20 * m33 - m23 * m30;
+        const T b3 = m21 * m32 - m22 * m31;
+        const T b4 = m21 * m33 - m23 * m31;
+        const T b5 = m22 * m33 - m23 * m32;
+
+        const T d = a0 * b5 - a1 * b4 + a2 * b3 +
+                    a3 * b2 - a4 * b1 + a5 * b0;
         if (abs(d) <= epsilon<T>) {
             return identity();
         }
 
-        T inv_det = T{1} / d;
+        const T inv_det = T{1} / d;
         return mat(layout::rowm,
-            ( m11 * b5 - m12 * b4 + m13 * b3) * inv_det,
-            (-m01 * b5 + m02 * b4 - m03 * b3) * inv_det,
-            ( m31 * a5 - m32 * a4 + m33 * a3) * inv_det,
-            (-m21 * a5 + m22 * a4 - m23 * a3) * inv_det,
+                   ( m11 * b5 - m12 * b4 + m13 * b3) * inv_det,
+                   (-m01 * b5 + m02 * b4 - m03 * b3) * inv_det,
+                   ( m31 * a5 - m32 * a4 + m33 * a3) * inv_det,
+                   (-m21 * a5 + m22 * a4 - m23 * a3) * inv_det,
 
-            (-m10 * b5 + m12 * b2 - m13 * b1) * inv_det,
-            ( m00 * b5 - m02 * b2 + m03 * b1) * inv_det,
-            (-m30 * a5 + m32 * a2 - m33 * a1) * inv_det,
-            ( m20 * a5 - m22 * a2 + m23 * a1) * inv_det,
+                   (-m10 * b5 + m12 * b2 - m13 * b1) * inv_det,
+                   ( m00 * b5 - m02 * b2 + m03 * b1) * inv_det,
+                   (-m30 * a5 + m32 * a2 - m33 * a1) * inv_det,
+                   ( m20 * a5 - m22 * a2 + m23 * a1) * inv_det,
 
-            ( m10 * b4 - m11 * b2 + m13 * b0) * inv_det,
-            (-m00 * b4 + m01 * b2 - m03 * b0) * inv_det,
-            ( m30 * a4 - m31 * a2 + m33 * a0) * inv_det,
-            (-m20 * a4 + m21 * a2 - m23 * a0) * inv_det,
+                   ( m10 * b4 - m11 * b2 + m13 * b0) * inv_det,
+                   (-m00 * b4 + m01 * b2 - m03 * b0) * inv_det,
+                   ( m30 * a4 - m31 * a2 + m33 * a0) * inv_det,
+                   (-m20 * a4 + m21 * a2 - m23 * a0) * inv_det,
 
-            (-m10 * b3 + m11 * b1 - m12 * b0) * inv_det,
-            ( m00 * b3 - m01 * b1 + m02 * b0) * inv_det,
-            (-m30 * a3 + m31 * a1 - m32 * a0) * inv_det,
-            ( m20 * a3 - m21 * a1 + m22 * a0) * inv_det
-        );
+                   (-m10 * b3 + m11 * b1 - m12 * b0) * inv_det,
+                   ( m00 * b3 - m01 * b1 + m02 * b0) * inv_det,
+                   (-m30 * a3 + m31 * a1 - m32 * a0) * inv_det,
+                   ( m20 * a3 - m21 * a1 + m22 * a0) * inv_det);
     }
 };
 
-}
+} // namespace cc
