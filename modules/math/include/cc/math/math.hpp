@@ -20,11 +20,14 @@
 #include "mat/mat4.hpp"
 #include "mat/format.hpp"
 
+#include "quat/fwd.hpp"
+#include "quat/quat.hpp"
+
 #include "interop/op.hpp"
 #include "interop/transform.hpp"
 // IWYU pragma: end_exports
 
-namespace cc{
+namespace cc {
 
 template<arithmetic T = std::uint32_t> using vec2 = vec<2, T>;
 template<arithmetic T = std::uint32_t> using vec3 = vec<3, T>;
@@ -58,4 +61,8 @@ using mat2d = mat2<double>;
 using mat3d = mat3<double>;
 using mat4d = mat4<double>;
 
-}
+//NOTE: quaternion aliases
+using quatf = quat<float>;
+using quatd = quat<double>;
+
+} // namespace cc

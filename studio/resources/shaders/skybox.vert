@@ -10,6 +10,6 @@ layout(location = 0) out vec3 vTexCoords;
 
 void main() {
     vTexCoords = aPosition;
-    vec4 pos = viewProjection * vec4(aPosition, 1.0);
+    vec4 pos   = viewProjection * vec4(aPosition, 1.0);
     gl_Position = pos.xyww;
 }

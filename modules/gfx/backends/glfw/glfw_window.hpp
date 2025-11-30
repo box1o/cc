@@ -1,5 +1,9 @@
 #pragma once
 #include <cc/gfx/window/window.hpp>
+#include <cc/gfx/events/bus.hpp>
+#include <cc/gfx/events/window/events.hpp>
+#include <cc/gfx/events/input/events.hpp>
+#include <cc/gfx/events/render/events.hpp>
 #include <string>
 
 struct GLFWwindow;
@@ -33,6 +37,7 @@ public:
     [[nodiscard]] WindowBackend GetBackend() const override { return WindowBackend::GLFW; }
 
     void SetResizeCallback(WindowResizeCallback callback) override;
+    void SetEventBus(const ref<events::EventBus>& bus) override;
 
 private:
     GLFWWindowImpl() = default;
@@ -40,8 +45,21 @@ private:
     static void InitGLFW();
     static void TerminateGLFW();
     static void ErrorCallback(int error, const char* description);
+
+    // GLFW callbacks
     static void FramebufferSizeCallback(GLFWwindow* window, int width, int height);
     static void WindowCloseCallback(GLFWwindow* window);
+    static void WindowFocusCallback(GLFWwindow* window, int focused);
+    static void WindowPosCallback(GLFWwindow* window, int xpos, int ypos);
+    static void WindowIconifyCallback(GLFWwindow* window, int iconified);
+    static void WindowMaximizeCallback(GLFWwindow* window, int maximized);
+
+    static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+    static void CharCallback(GLFWwindow* window, unsigned int codepoint);
+    static void CursorPosCallback(GLFWwindow* window, double xpos, double ypos);
+    static void CursorEnterCallback(GLFWwindow* window, int entered);
+    static void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
+    static void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 
     GLFWwindow* handle_{nullptr};
     std::string title_;
@@ -53,6 +71,12 @@ private:
     bool decorated_{true};
 
     WindowResizeCallback resizeCallback_{};
+
+    ref<events::EventBus> eventBus_{};
+
+    double lastCursorX_{0.0};
+    double lastCursorY_{0.0};
+    bool   hasLastCursor_{false};
 
     static inline u32 s_windowCount{0};
     static inline bool s_initialized{false};

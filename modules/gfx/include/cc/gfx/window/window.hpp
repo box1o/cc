@@ -5,6 +5,10 @@
 #include <string_view>
 #include <functional>
 
+namespace cc::gfx::events {
+class EventBus;
+}
+
 namespace cc::gfx {
 
 using WindowResizeCallback = std::function<void(u32 width, u32 height)>;
@@ -63,6 +67,9 @@ public:
     [[nodiscard]] virtual WindowBackend GetBackend() const = 0;
 
     virtual void SetResizeCallback(WindowResizeCallback callback) = 0;
+
+    //NOTE: attach an EventBus instance to the window
+    virtual void SetEventBus(const ref<events::EventBus>& bus) = 0;
 
     [[nodiscard]] f32 GetAspectRatio() const {
         const u32 h = GetHeight();

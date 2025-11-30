@@ -6,7 +6,7 @@ project(stb
     LANGUAGES C
 )
 
-add_library(stb STATIC stb_image.c)
+add_library(stb STATIC stb_image.c stb_image_write.c)
 add_library(stb::stb ALIAS stb)
 
 target_include_directories(stb
