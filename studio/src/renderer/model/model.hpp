@@ -1,5 +1,5 @@
 #pragma once
-#include "camera/camera.hpp"
+#include "renderer/camera/camera.hpp"
 #include "common/functions.hpp"
 #include "pipeline/vertex_layout.hpp"
 #include <cc/core/core.hpp>

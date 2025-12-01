@@ -40,3 +40,4 @@ find_or_fetch_package(shaderc
         SHADERC_SKIP_EXAMPLES=ON
         SHADERC_SKIP_COPYRIGHT_CHECK=ON
 )
+
