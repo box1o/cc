@@ -21,4 +21,15 @@
 #include "graph/resource_handle.hpp"
 #include "graph/render_pass.hpp"
 #include "graph/render_graph.hpp"
+
+#include "events/application/events.hpp"
+#include "events/input/events.hpp"
+#include "events/render/events.hpp"
+#include "events/window/events.hpp"
+#include "events/base.hpp"
+#include "events/bus.hpp"
+#include "events/category.hpp"
+#include "events/dispatcher.hpp"
+#include "events/scoped_connection.hpp"
+#include "events/type.hpp"
 // IWYU pragma: end_exports

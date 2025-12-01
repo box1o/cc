@@ -23,7 +23,6 @@ add_module(math
     HEADERS
         ${MATH_HEADERS}
     DEPENDENCIES
-    
 )
 
 

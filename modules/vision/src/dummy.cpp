@@ -1,3 +1,0 @@
-namespace cc {
-    void dummy() {}
-}

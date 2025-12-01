@@ -27,6 +27,8 @@
 #include "interop/transform.hpp"
 // IWYU pragma: end_exports
 
+#include <type_traits>
+
 namespace cc {
 
 template<arithmetic T = std::uint32_t>
@@ -69,5 +71,13 @@ using mat4d = mat4_t<double>;
 
 using quatf = quat<float>;
 using quatd = quat<double>;
+
+//NOTE: layout guarantees
+static_assert(std::is_trivially_copyable_v<vec<2, float>>);
+static_assert(std::is_trivially_copyable_v<vec<3, float>>);
+static_assert(std::is_trivially_copyable_v<vec<4, float>>);
+
+static_assert(std::is_trivially_copyable_v<mat<3, 3, float>>);
+static_assert(std::is_trivially_copyable_v<mat<4, 4, float>>);
 
 } // namespace cc

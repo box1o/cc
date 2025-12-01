@@ -7,7 +7,6 @@
 #include <array>
 #include <cassert>
 #include <cstddef>
-#include <type_traits>
 
 namespace cc {
 
@@ -332,8 +331,5 @@ template<std::size_t N, floating_point T>
 
     return inv;
 }
-
-static_assert(std::is_trivially_copyable_v<mat<3, 3, float>>);
-static_assert(std::is_trivially_copyable_v<mat<4, 4, float>>);
 
 } // namespace cc

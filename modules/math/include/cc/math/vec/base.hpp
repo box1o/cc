@@ -6,7 +6,6 @@
 #include <array>
 #include <cassert>
 #include <cstddef>
-#include <type_traits>
 
 namespace cc {
 
@@ -199,9 +198,5 @@ public:
 private:
     std::array<T, N> data_{};
 };
-
-static_assert(std::is_trivially_copyable_v<vec<2, float>>);
-static_assert(std::is_trivially_copyable_v<vec<3, float>>);
-static_assert(std::is_trivially_copyable_v<vec<4, float>>);
 
 } // namespace cc
