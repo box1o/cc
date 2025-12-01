@@ -152,8 +152,8 @@ int main() {
             cmd.SetViewport(0.0f, 0.0f, static_cast<cc::f32>(w), static_cast<cc::f32>(h));
             cmd.SetScissor(0, 0, w, h);
 
-            skyboxTex->Bind(0);
-            skyboxSampler->Bind(0);
+            skyboxtex->bind(0);
+            skyboxsampler->bind(0);
 
             cmd.BindPipeline(skyboxPipeline.get());
             cmd.BindDescriptorSet(0, skyboxDescSet.get());
