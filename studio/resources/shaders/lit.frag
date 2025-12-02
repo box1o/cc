@@ -15,11 +15,10 @@ void main()
     vec3 N = normalize(vNormal);
     vec3 V = normalize(vCameraPos - vWorldPos);
     vec3 R = reflect(-V, N);
-
     vec3 reflection = texture(envMap, R).rgb;
-    vec3 baseColor = texture(albedoMap, vUv).rgb;
 
-    vec3 finalColor = mix(baseColor, reflection, .4);
-
+    vec3 baseColor = vec3(.5);
+    baseColor *= texture(albedoMap, vUv).rgb;
+    vec3 finalColor = mix(baseColor, reflection, .2);
     FragColor = vec4(finalColor, 1.0);
 }

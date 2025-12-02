@@ -76,6 +76,18 @@ static std::array<u16, 30> boxIndices = {{
     16,17,18, 18,19,16
 }};
 
+static std::array<Vertex, 4> waterVertices = {{
+    {{-1.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+    {{ 1.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+    {{ 1.0f, 0.0f,  1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
+    {{-1.0f, 0.0f,  1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
+}};
+
+static std::array<u16, 6> waterIndices = {{
+    0, 1, 2,
+    2, 3, 0
+}};
+
 int main() {
     log::Init("studio");
 
@@ -93,6 +105,32 @@ int main() {
 
     auto swapchain = Swapchain::Create(window.get(), device.get());
 
+    //NOTE: WATER
+    auto waterVBuffer = Buffer::Create(
+        device.get(),
+        BufferType::Vertex,
+        sizeof(Vertex) * waterVertices.size(),
+        BufferUsage::Static,
+        waterVertices.data()
+    );
+
+    auto waterIBuffer = Buffer::Create(
+        device.get(),
+        BufferType::Index,
+        sizeof(u16) * waterIndices.size(),
+        BufferUsage::Static,
+        waterIndices.data()
+    );
+
+
+    auto waterShader = Shader::Create(device.get())
+        .AddStage(ShaderStage::Vertex,   "resources/shaders/water.vert")
+        .AddStage(ShaderStage::Fragment, "resources/shaders/water.frag")
+        .Build();
+
+
+
+    //NOTE: POOL
     auto vbuffer = Buffer::Create(
         device.get(),
         BufferType::Vertex,
@@ -156,6 +194,10 @@ int main() {
     shader->SetUniformBlock("UBO", 0);
     shader->Unbind();
 
+    waterShader->Bind();
+    waterShader->SetUniformBlock("UBO", 0);
+    waterShader->Unbind();
+
     Uniforms uniforms{};
     uniforms.model      = mat4f::identity();
     uniforms.view       = mat4f::identity();
@@ -216,6 +258,15 @@ int main() {
         .SetDepthTest(true)
         .Build();
 
+
+    auto waterPipeline = Pipeline::Create(device.get())
+        .SetShader(waterShader.get())
+        .SetVertexLayout(layout.get())
+        .AddDescriptorLayout(descLayout.get())
+        .SetCullMode(CullMode::None)
+        .SetDepthTest(true)
+        .Build();
+
     auto graph = RenderGraph::Create(device.get());
     graph->SetSwapchain(swapchain.get());
 
@@ -237,6 +288,13 @@ int main() {
             cmd.BindIndexBuffer(ibuffer.get(), IndexType::U16);
 
             cmd.DrawIndexed(static_cast<u32>(boxIndices.size()));
+
+            cmd.BindPipeline(waterPipeline.get());
+            cmd.BindDescriptorSet(0, descSet.get());
+            cmd.BindVertexBuffer(0, waterVBuffer.get(), 0);
+            cmd.BindIndexBuffer(waterIBuffer.get(), IndexType::U16);
+            cmd.DrawIndexed(static_cast<u32>(waterIndices.size()));
+
         });
 
     graph->Compile();
