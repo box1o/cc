@@ -34,8 +34,9 @@ EditorCamera::Builder& EditorCamera::Builder::SetViewportSize(u32 width, u32 hei
     return *this;
 }
 
-EditorCamera EditorCamera::Builder::Build() const {
-    return EditorCamera(desc_);
+scope<EditorCamera> EditorCamera::Builder::Build() const {
+    auto camera = scope<EditorCamera>(new EditorCamera(desc_));
+    return camera;
 }
 
 EditorCamera::EditorCamera(const Desc& desc)

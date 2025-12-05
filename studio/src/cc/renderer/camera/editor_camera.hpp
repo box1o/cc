@@ -3,6 +3,7 @@
 #include <cc/math/math.hpp>
 #include <cc/gfx/gfx.hpp>
 #include "camera.hpp"
+#include "types.hpp"
 
 namespace cc{
 
@@ -50,7 +51,7 @@ public:
         Builder& SetEventBus(const ref<cc::gfx::events::EventBus>& bus) noexcept;
         Builder& SetViewportSize(u32 width, u32 height) noexcept;
 
-        [[nodiscard]] EditorCamera Build() const;
+        [[nodiscard]] scope<EditorCamera >Build() const;
 
     private:
         Desc desc_{};
